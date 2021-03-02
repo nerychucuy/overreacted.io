@@ -37,42 +37,41 @@ Para poder *ver* las respuestas, necesitamos verlo desde una perspectiva más ge
 
 ## TLDR
 
-Here’s a quick TLDR if you don’t want to read the whole thing. If some parts don’t make sense, you can scroll down until you find something related.
+Aquí hay un breve TLDR en caso que no quieras leer todo el artículo. Si hay partes que no hacen sentido, puedes desplazarte hacia abajo hasta que encuentres algo relacionado.
 
-Feel free to skip it if you plan to read the whole post. I’ll link to it at the end.
+Siente libertad de saltarte esta parte si piensas leer la publicación completa. Voy a agregar un vínculo hacia aquí al final.
 
+**🤔 Pregunta: ¿Cómo replico `componentDidMount` usando `useEffect`?**
 
-**🤔 Question: How do I replicate `componentDidMount` with `useEffect`?**
+Aún cuando puedes usar `useEffect(fn, [])`, no es un equivalente exacto. A diferencia de `componentDidMount`, va a *capturar* propiedades y estado. De manera que aún dentro de los callbacks, verás las propiedades y estado iniciales. Si quieres ver lo "último" de algo, puedes escribirlo en un ref. Pero usualmente hay una manera más simple de estructurar el código de manera que no tengas que hacer esto. Toma en cuenta que el modelo mental para los effects es diferente a `componentDidMount` y a otros métodos del ciclo de vida e intentar encontrar sus equivalentes exactos puede confundirte más que ayudarte. Para ser productivo, necesitas "pensar en efectos" y su modelo mental que es más cercano a implementar sincronización que a eventos del ciclo de vida.
 
-While you can `useEffect(fn, [])`, it’s not an exact equivalent. Unlike `componentDidMount`, it will *capture* props and state. So even inside the callbacks, you’ll see the initial props and state. If you want to see “latest” something, you can write it to a ref. But there’s usually a simpler way to structure the code so that you don’t have to. Keep in mind that the mental model for effects is different from `componentDidMount` and other lifecycles, and trying to find their exact equivalents may confuse you more than help. To get productive, you need to “think in effects”, and their mental model is closer to implementing synchronization than to responding to lifecycle events.
+**🤔 Pregunta:  ¿Cuál es la forma correcta de obtener datos dentro de `useEffect`? ¿Qué es `[]`?**
 
-**🤔 Question:  How do I correctly fetch data inside `useEffect`? What is `[]`?**
+[Este artículo](https://www.robinwieruch.de/react-hooks-fetch-data/) es una buena introducción a obtener datos con `useEffect`. ¡Asegúrate de leerlo completo! No es tan largo como este artículo. `[]` significa que el efecto no usa ningún valor que participe en el flujo de datos de React, y es por esa razón que es seguro ejecutarlo una sola vez. También es una fuente común de errores cuando el valor *es* usado. Tendrás que aprender algunas estrategias (principalmente `useReducer` y `useCallback`) que pueden *remover la necesidad* de una dependencia en lugar de incorrectamente omitirla.
 
-[This article](https://www.robinwieruch.de/react-hooks-fetch-data/) is a good primer on data fetching with `useEffect`. Make sure to read it to the end! It’s not as long as this one. `[]` means the effect doesn’t use any value that participates in React data flow, and is for that reason safe to apply once. It is also a common source of bugs when the value actually *is* used. You’ll need to learn a few strategies (primarily `useReducer` and `useCallback`) that can *remove the need* for a dependency instead of incorrectly omitting it.
+**🤔 Pregunta: ¿Es necesario que coloque funciones en las dependencias de `useEffect` o no?**
 
-**🤔 Question: Do I need to specify functions as effect dependencies or not?**
+La recomendación es sacar *fuera* de tu componente las funciones que no necesitan propiedades o estado, y colocar *adentro* de effect aquellas que son utilizadas por ese effect. Si después de seguir esas recomendaciones tu effect aún termina utilizando funciones en el alcance del renderizado (incluyendo funciones pasadads como propiedades), enciérralas en `useCallback` en donde están definidas, y repite el proceso. ¿Por qué es importante hacerlo? Las funciones pueden "ver" valores de propiedades y estado - de manera que participan en el flujo de datos. Hay una [respuesta más detallada](https://reactjs.org/docs/hooks-faq.html#is-it-safe-to-omit-functions-from-the-list-of-dependencies) en nuestro FAQ.
 
-The recommendation is to hoist functions that don’t need props or state *outside* of your component, and pull the ones that are used only by an effect *inside* of that effect.  If after that your effect still ends up using functions in the render scope (including function from props), wrap them into `useCallback` where they’re defined, and repeat the process. Why does it matter? Functions can “see” values from props and state — so they participate in the data flow. There's a [more detailed answer](https://reactjs.org/docs/hooks-faq.html#is-it-safe-to-omit-functions-from-the-list-of-dependencies) in our FAQ.
+**🤔 Pregunta: ¿Por qué algunas veces mi código que obtiene datos externos entra en un ciclo infinito?**
 
-**🤔 Question: Why do I sometimes get an infinite refetching loop?**
+Esto puede suceder si estás obteniendo datos en un effect sin utilizar el argumento de dependencias. Sin el, los effects son ejecutados despues de cada render — y ajustar el estado va a disparar los effects de nuevo. Un ciclo infinito también pueda darse si especificas un valor que *siempre* cambia en el arreglo de dependencias. Puedes encontrar cuál es quitando uno por uno. Sin embargo, remover una dependencia que utilizas (o ciegamente especificar `[]`) es usualmente una solución incorrecta. En su lugar, arregla el problema desde la fuente. Por ejemplo, funciones pueden ser la causa de este problema, y con ponerlas adentro de los effects, sacarlas del componente, o colocarlas adentro de `useCallback` puede ayudar. Para evitar recrear objetos, `useMemo` puede tener un uso similar. 
 
-This can happen if you’re doing data fetching in an effect without the second dependencies argument. Without it, effects run after every render — and setting the state will trigger the effects again. An infinite loop may also happen if you specify a value that *always* changes in the dependency array. You can tell which one by removing them one by one. However, removing a dependency you use (or blindly specifying `[]`) is usually the wrong fix. Instead, fix the problem at its source. For example, functions can cause this problem, and putting them inside effects, hoisting them out, or wrapping them with `useCallback` helps. To avoid recreating objects, `useMemo` can serve a similar purpose.
+**🤔 Pregunta: ¿Por qué algunas veces me encuentro con estado o propiedades con valores pasados en `useEffect`?**
 
-**🤔 Why do I sometimes get an old state or prop value inside my effect?**
-
-Effects always “see” props and state from the render they were defined in. That [helps prevent bugs](/how-are-function-components-different-from-classes/) but in some cases can be annoying. For those cases, you can explicitly maintain some value in a mutable ref (the linked article explains it at the end). If you think you’re seeing some props or state from an old render but don’t expect it, you probably missed some dependencies. Try using the [lint rule](https://github.com/facebook/react/issues/14920) to train yourself to see them. A few days, and it’ll be like a second nature to you. See also [this answer](https://reactjs.org/docs/hooks-faq.html#why-am-i-seeing-stale-props-or-state-inside-my-function) in our FAQ.
-
----
-
-I hope this TLDR was helpful! Otherwise, let’s go.
+Los effects siempre "ven" los propiedades y estado del renderizado en el cual fueron definidos. Esto [ayuda a prevenir errores](/how-are-function-components-different-from-classes/) pero en algunos casos puede ser molesto. Para esos casos, puedes mantener el valor en un ref mutable de manera explícita (el artículo referido lo explica al final). Si crees que te estás encontrando con propiedades o estado de un renderizado pasado pero no espera que fuera asi, probablemente te hizo falta alguna dependencia. Intenta usar una [regla de lint](https://github.com/facebook/react/issues/14920) para entrenarte a ti mismo para verlas. Un par de días, y será como una segunda naturaleza para ti. También puedes ver [esta respuesta] (https://reactjs.org/docs/hooks-faq.html#why-am-i-seeing-stale-props-or-state-inside-my-function) en nuestro FAQ.
 
 ---
 
-## Each Render Has Its Own Props and State
+¡Espero que este TLDR haya sido de ayuda! De lo contrario, vámos.
 
-Before we can talk about effects, we need to talk about rendering.
+---
 
-Here’s a counter. Look at the highlighted line closely:
+## Cada Render Tiene Sus Propias Propiedades y Estado
+
+Antes que podamos hablar de effects, necesitamos hablar sobre el renderizado.
+
+Aquí hay un contador. Observa la línea resaltada detenidamente:
 
 ```jsx{6}
 function Counter() {
@@ -89,9 +88,9 @@ function Counter() {
 }
 ```
 
-What does it mean? Does `count` somehow “watch” changes to our state and update automatically? That might be a useful first intuition when you learn React but it’s *not* an [accurate mental model](https://overreacted.io/react-as-a-ui-runtime/).
+¿Qué significa? ¿Acaso `count` de alguna manera "observa" cambios en nuestro estado y se actualiza de manera automática? Esa puede ser una útil intuición inicial cuando aprendes React but *no* es un [modelo mental adecuado](https://overreacted.io/react-as-a-ui-runtime/).
 
-**In this example, `count` is just a number.** It’s not a magic “data binding”, a “watcher”, a “proxy”, or anything else. It’s a good old number like this one:
+**En este ejemplo, `count` solo es un número.** No es un "vínculo de datos" mágico, un "observador", un "proxy", o nada más. Es un viejo y buen número tal como este:
 
 ```jsx
 const count = 42;
