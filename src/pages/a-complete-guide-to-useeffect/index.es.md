@@ -88,9 +88,9 @@ function Counter() {
 }
 ```
 
-¿Qué significa? ¿Acaso `count` de alguna manera "observa" cambios en nuestro estado y se actualiza de manera automática? Esa puede ser una útil intuición inicial cuando aprendes React but *no* es un [modelo mental adecuado](https://overreacted.io/react-as-a-ui-runtime/).
+¿Qué significa? ¿Acaso `count` de alguna manera "observa" cambios en nuestro estado y se actualiza de manera automática? Esa puede ser una útil intuición inicial cuando aprendes React pero *no* es un [modelo mental adecuado](https://overreacted.io/react-as-a-ui-runtime/).
 
-**En este ejemplo, `count` solo es un número.** No es un "vínculo de datos" mágico, un "observador", un "proxy", o nada más. Es un viejo y buen número tal como este:
+**En este ejemplo, `count` solo es un número.** No es un "vínculo de datos" mágico, un "observador", un "proxy", o nada más. Es un viejo y conocido número tal como este:
 
 ```jsx
 const count = 42;
@@ -99,53 +99,53 @@ const count = 42;
 // ...
 ```
 
-The first time our component renders, the `count` variable we get from `useState()` is `0`. When we call `setCount(1)`, React calls our component again. This time, `count` will be `1`. And so on:
+La primera vez que nuestro componente se renderiza, la variable `count` que obtenemos de `useState()` es `0`. Cuando llamamos `setCount(1)`, React llama nuestro componente de nuevo. Esta vez, `count` será `1`. Y así sucesivamente:
 
 ```jsx{3,11,19}
-// During first render
+// Durante el primer renderizado
 function Counter() {
-  const count = 0; // Returned by useState()
+  const count = 0; // Retornado por useState()
   // ...
   <p>You clicked {count} times</p>
   // ...
 }
 
-// After a click, our function is called again
+// Después de un click, nuestra función es llamada de nuevo
 function Counter() {
-  const count = 1; // Returned by useState()
+  const count = 1; // Retornado por useState()
   // ...
   <p>You clicked {count} times</p>
   // ...
 }
 
-// After another click, our function is called again
+// Después de otro click, nuestra función se llama de nuevo
 function Counter() {
-  const count = 2; // Returned by useState()
+  const count = 2; // Retornado por useState()
   // ...
   <p>You clicked {count} times</p>
   // ...
 }
 ```
 
-**Whenever we update the state, React calls our component. Each render result “sees” its own `counter` state value which is a *constant* inside our function.**
+**Cuando sea que actualicemos el estado, React llama a nuestro componente. Cada resultado de render "ve" su propio valor del estado `counter` el cual es una *constante* dentro de nuestra función.**
 
-So this line doesn’t do any special data binding:
+De este modo, esta línea no hace ningún tipo de vinculación de datos especiales:
 
 ```jsx
 <p>You clicked {count} times</p>
 ```
 
-**It only embeds a number value into the render output.** That number is provided by React. When we `setCount`, React calls our component again with a different `count` value. Then React updates the DOM to match our latest render output.
+**Solamente incrusta un valor numérico en los resultados del render.** Ese numero es proporcionado por React. Cuando hacemos `setCount`, React llama nuestro componente de nuevo con un valor diferente para `count`. Luego, React actualiza el DOM para que coincida con nuestro ultimo renderizado.
 
-The key takeaway is that the `count` constant inside any particular render doesn’t change over time. It’s our component that’s called again — and each render “sees” its own `count` value that’s isolated between renders.
+El punto importante de esto es que la constante `count` dentro de cualquier render particular no cambia con el tiempo. Es nuestro componente que es llamado de nuevo — y cada render "ve" su propio valor `count` que está aislado de render a render.
 
-*(For an in-depth overview of this process, check out my post [React as a UI Runtime](https://overreacted.io/react-as-a-ui-runtime/).)*
+*(Para un recorrido profundo de este proceso, consulta mi publicación [React como un UI Runtime](https://overreacted.io/react-as-a-ui-runtime/) .)*
 
-## Each Render Has Its Own Event Handlers
+## Cada Render Tiene Sus Propios Manejadores De Eventos 
 
-So far so good. What about event handlers?
+Hasta ahora, todo bien. ¿Qué hay de los menejadores de eventos?
 
-Look at this example. It shows an alert with the `count` after three seconds:
+Revisa este ejemplo. Muestra un mensaje de alerta con el valor de `count` después de tres segundos:
 
 ```jsx{4-8,16-18}
 function Counter() {
@@ -171,37 +171,37 @@ function Counter() {
 }
 ```
 
-Let’s say I do this sequence of steps:
+Digamos que sigo estos pasos en orden:
 
-* **Increment** the counter to 3
-* **Press** “Show alert”
-* **Increment** it to 5 before the timeout fires
+* **Incremento** el contador a 3
+* **Presiono** "Show alert"
+* **Incremento** el contador a 5 antes de que el temporizador se dispare
 
-![Counter demo](./counter.gif)
+![Demo del contador](./counter.gif)
 
-What do you expect the alert to show? Will it show 5 — which is the counter state at the time of the alert? Or will it show 3 — the state when I clicked?
+¿Qué esperas que muestre el mensaje de alerta? ¿Mostrará 5 — que es el valor del estado del contador al momento del mensaje? ¿O mostrará 3 — el valor del estado cuando hice click?
 
 ----
 
-*spoilers ahead*
+*vienen spoilers*
 
 ---
 
-Go ahead and [try it yourself!](https://codesandbox.io/s/w2wxl3yo0l)
+¡Ve y [pruébalo tu mismo!](https://codesandbox.io/s/w2wxl3yo0l)
 
-If the behavior doesn’t quite make sense to you, imagine a more practical example: a chat app with the current recipient ID in the state, and a Send button. [This article](https://overreacted.io/how-are-function-components-different-from-classes/) explores the reasons in depth but the correct answer is 3.
+Si el resultado no te hace mucho sentido, imagina un ejemplo más práctico: una aplicación de chat con el valor actual del ID del recipiente en su estado y un botón de Enviar. [Este artículo](https://overreacted.io/how-are-function-components-different-from-classes/) explora las razones de esto a profundida, pero la respuesta correcta es 3.
 
-The alert will “capture” the state at the time I clicked the button.
+El mensaje de alerta "captura" el estado en el momento que hice click en el botón.
 
-*(There are ways to implement the other behavior too but I’ll be focusing on the default case for now. When building a mental model, it’s important that we distinguish the “path of least resistance” from the opt-in escape hatches.)*
+*(Hay formas de implementar el otro resultado también, pero por ahora me estaré enfocando en el caso por defecto. Cuando construimos un modelo mental, es importante que distingamos el "camino con menor resistencia" del camino no convencional)*
 
 ---
 
-But how does it work?
+¿Pero, cómo funciona?
 
-We’ve discussed that the `count` value is constant for every particular call to our function. It’s worth emphasizing this — **our function gets called many times (once per each render), but every one of those times the `count` value inside of it is constant and set to a particular value (state for that render).**
+Ya hemos discutivo que el valor de `count` es constante para cada llamada particular a nuestra función. Vale la pena enfatizar esto — **nuestra función es llamada muchas veces (una por cada render), pero cada una de esas veces el valor de `count` dentro de la función es constante y asignado a un valor en particular (el estado de ese render).**
 
-This is not specific to React — regular functions work in a similar way:
+Esto no es específico de React — las funciones regulares funcionan de manera similar:
 
 ```jsx{2}
 function sayHi(person) {
@@ -221,14 +221,14 @@ someone = {name: 'Dominic'};
 sayHi(someone);
 ```
 
-In [this example](https://codesandbox.io/s/mm6ww11lk8), the outer `someone` variable is reassigned several times. (Just like somewhere in React, the *current* component state can change.) **However, inside `sayHi`, there is a local `name` constant that is associated with a `person` from a particular call.** That constant is local, so it’s isolated between the calls! As a result, when the timeouts fire, each alert “remembers” its own `name`.
+En [este ejemplo](https://codesandbox.io/s/mm6ww11lk8), la variable externa `someone` es reasignada en varias ocasiones. (Igual que en algún lugar en React, el estado del componente *actual* puede cambiar.) **Sin embargo, adentro de `sayHi`, hay una constante local `name` que es asociada con una `person` de cada llamada particular.** Esa constante es local, por lo tanto, ¡es aislada entre cada llamada! Como resultado, cuando el temporizador se dispara, cada alerta "recuerda" su propio `name`.
 
-This explains how our event handler captures the `count` at the time of the click. If we apply the same substitution principle, each render “sees” its own `count`:
+Esto explica como nuestro manejador de eventos captura el valor de `count` en el momento del click. Si aplicamos el mismo principio de substitución, cada render "ve" su propio `count`:
 
 ```jsx{3,15,27}
-// During first render
+// Durante el primer render
 function Counter() {
-  const count = 0; // Returned by useState()
+  const count = 0; // Retornado por useState()
   // ...
   function handleAlertClick() {
     setTimeout(() => {
@@ -238,9 +238,9 @@ function Counter() {
   // ...
 }
 
-// After a click, our function is called again
+// Después de un click, nuestra función es llamada de nuevo
 function Counter() {
-  const count = 1; // Returned by useState()
+  const count = 1; // Retornado  por useState()
   // ...
   function handleAlertClick() {
     setTimeout(() => {
@@ -250,9 +250,9 @@ function Counter() {
   // ...
 }
 
-// After another click, our function is called again
+// Después de otro click, nuestra función es llamada otra vez
 function Counter() {
-  const count = 2; // Returned by useState()
+  const count = 2; // Retornado por useState()
   // ...
   function handleAlertClick() {
     setTimeout(() => {
@@ -263,10 +263,10 @@ function Counter() {
 }
 ```
 
-So effectively, each render returns its own “version” of `handleAlertClick`. Each of those versions “remembers” its own `count`:
+Entonces efectivamente, cada render retorna su propia "versión" de `handleAlertClick`. Cada una de esas versiones "recuerda" su propio `count`:
 
 ```jsx{6,10,19,23,32,36}
-// During first render
+// Durante el primer render
 function Counter() {
   // ...
   function handleAlertClick() {
@@ -275,11 +275,11 @@ function Counter() {
     }, 3000);
   }
   // ...
-  <button onClick={handleAlertClick} /> // The one with 0 inside
+  <button onClick={handleAlertClick} /> // La función que tiene 0 adentro
   // ...
 }
 
-// After a click, our function is called again
+// Después de un click, nuestra función es llamada nuevamente
 function Counter() {
   // ...
   function handleAlertClick() {
@@ -288,11 +288,11 @@ function Counter() {
     }, 3000);
   }
   // ...
-  <button onClick={handleAlertClick} /> // The one with 1 inside
+  <button onClick={handleAlertClick} /> // La función que tiene 1 adentro
   // ...
 }
 
-// After another click, our function is called again
+// Después de otro click, nuestra función es llamada otra vez
 function Counter() {
   // ...
   function handleAlertClick() {
@@ -301,7 +301,7 @@ function Counter() {
     }, 3000);
   }
   // ...
-  <button onClick={handleAlertClick} /> // The one with 2 inside
+  <button onClick={handleAlertClick} /> // La función que tiene 2 adentro
   // ...
 }
 ```
