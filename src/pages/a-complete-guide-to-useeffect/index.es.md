@@ -519,9 +519,9 @@ function Example(props) {
 
 Claro, algunas veces *quieres* leer el último valor en lugar del valor capturado dentro de algún callback definido en un effect. La forma más facil de lograrlo es a través de refs, tal como está descrito en la última sección de [este artículo](https://overreacted.io/how-are-function-components-different-from-classes/).
 
-Be aware that when you want to read the *future* props or state from a function in a *past* render, you’re swimming against the tide. It’s not *wrong* (and in some cases necessary) but it might look less “clean” to break out of the paradigm. This is an intentional consequence because it helps highlight which code is fragile and depends on timing. In classes, it’s less obvious when this happens.
+Ten presente que cuando quieres leer propiedades o estado del *futuro* desde una función de un render *pasado*, están nadando en contra de la corriente. No es *incorrecto* (y en algunos casos es necesario) pero puede ser que se vea menos "limpio" el romper el paradigma. Esta es una consecuencia  intencional pues ayuda a resaltar qué código es frágil y depende del tiempo. En clases, es menos obvio cuando esto sucede.
 
-Here’s a [version of our counter example](https://codesandbox.io/s/rm7z22qnlp) that replicates the class behavior:
+Aquí hay una [versión de nuestro ejemplo del contador](https://codesandbox.io/s/rm7z22qnlp) que replica el comportamiento de clases:
 
 ```jsx{3,6-7,9-10}
 function Example() {
@@ -539,15 +539,15 @@ function Example() {
   // ...
 ```
 
-![Screen recording of 5, 5, 5, 5, 5 logged in order](./timeout_counter_refs.gif)
+![Captura de pantalla de 5, 5, 5, 5, 5 registrados en orden](./timeout_counter_refs.gif)
 
-It might seem quirky to mutate something in React. However, this is exactly how React itself reassigns `this.state` in classes. Unlike with captured props and state, you don’t have any guarantees that reading `latestCount.current` would give you the same value in any particular callback. By definition, you can mutate it any time. This is why it’s not a default, and you have to opt into that.
+Mutar algo en React puede parecer peculiar. Sin embargo, esto es exactamente la forma en que React en sí mismo reasigna `this.state` en clases. Contrario al estado y propiedades capturados, no tienes ninguna garantía que leer `latestCount.current` te dará el mismo valor en un callback en particular. Por definición, puedes mutarlo en cualquier momento. Es por eso que no es un valor predeterminado sino algo que debes habilitar.
 
-## So What About Cleanup?
+## ¿Qué Hay Acerca De La Limpieza?
 
-As [the docs explain](https://reactjs.org/docs/hooks-effect.html#effects-with-cleanup), some effects might have a cleanup phase. Essentially, its purpose is to “undo” an effect for cases like subscriptions.
+Tal y como [lo explican los documentos](https://reactjs.org/docs/hooks-effect.html#effects-with-cleanup), algunos effects pueden tener una fase de limpieza. Esencialmente, su propósito es "deshacer" un efecto en casos como suscripciones.
 
-Consider this code:
+Considera este código:
 
 ```jsx
   useEffect(() => {
@@ -558,44 +558,44 @@ Consider this code:
   });
 ```
 
-Say `props` is `{id: 10}` on the first render, and `{id: 20}` on the second render. You *might* think that something like this happens:
+Imagina que `props` es `{id: 10}` en el primer renderizado, y `{id: 20}` en el segundo. *Puedes* pensar que algo así pasará:
 
-* React cleans up the effect for `{id: 10}`.
-* React renders UI for `{id: 20}`.
-* React runs the effect for `{id: 20}`.
+* React limpia el effect para `{id: 10}`.
+* React renderiza el UI para `{id: 20}`.
+* React ejecuta el efecto para `{id: 20}`.
 
-(This is not quite the case.)
+(Ese no es para nada el caso.)
 
-With this mental model, you might think the cleanup “sees” the old props because it runs before we re-render, and then the new effect “sees” the new props because it runs after the re-render. That’s the mental model lifted directly from the class lifecycles, and **it’s not accurate here**. Let’s see why.
+Con este modelo mental, puedes pensar que la limpieza "ve" el valor viejo de props porque corre antes que volvamos a renderizar, y luego el nuevo effecto "ve" el nuevo valor de las propiedades porque corre después de volver a renderizar. Ese es el modelo mental tomado directamente de los métodos de ciclo de vida de las clases, y **no es acertado en este caso**. Veamos por qué.
 
-React only runs the effects after [letting the browser paint](https://medium.com/@dan_abramov/this-benchmark-is-indeed-flawed-c3d6b5b6f97f). This makes your app faster as most effects don’t need to block screen updates. Effect cleanup is also delayed. **The previous effect is cleaned up _after_ the re-render with new props:**
+React ejecuta los efectos solamente después de [dejar el navegador pintar su contenido](https://medium.com/@dan_abramov/this-benchmark-is-indeed-flawed-c3d6b5b6f97f). Esto hace que tu aplicación sea más rápida pues la mayoría de efectos no necesitan bloquear actualizaciones de pantalla. La limpieza del efecto también es retardada. **El effect previo es limpiado _después_ del re-render con las nuevas propiedades:**
 
-* **React renders UI for `{id: 20}`.**
-* The browser paints. We see the UI for `{id: 20}` on the screen.
-* **React cleans up the effect for `{id: 10}`.**
-* React runs the effect for `{id: 20}`.
+* **React renderiza la UI para `{id: 20}`.**
+* El navegador dibuja. Vemos la UI para `{id: 20}` en la pantalla.
+* **React limpia el effect con valor `{id: 10}`.**
+* React corre el effect para `{id: 20}`. 
 
-You might be wondering: but how can the cleanup of the previous effect still “see” the old `{id: 10}` props if it runs *after* the props change to `{id: 20}`?
+Te estarás preguntando: pero ¿cómo puede el método de limpieza del render anterior "ver" el viejo valor de propiedades `{id: 10}` si es ejecutado *después* de que las propiedades cambiaran a `{id: 20}`?
 
-We’ve been here before... 🤔
+Ya hemos estado aquí antes... 🤔
 
-![Deja vu (cat scene from the Matrix movie)](./deja_vu.gif)
+![Deja vu (escena del gato de la película Matrix)](./deja_vu.gif)
 
-Quoting the previous section:
+Citando a la sección anterior:
 
->Every function inside the component render (including event handlers, effects, timeouts or API calls inside them) captures the props and state of the render call that defined it.
+>Cada función dentro del render de un componente (incluyendo manejadores de envetos, effects, timeouts o llamadas al API desde dentro) captura las propiedades y el estado de la llamada de render que los definió.
 
-Now the answer is clear! The effect cleanup doesn’t read the “latest” props, whatever that means. It reads props that belong to the render it’s defined in:
+¡Ahora la respuesta está clara! El método de limpieza del effect no lee las "últimas" propiedades, lo que sea que eso signifique. Lee las propiedades que pertenenen al render en el que fueron definidas:
 
 ```jsx{8-11}
-// First render, props are {id: 10}
+// Primer render, props son {id: 10}
 function Example() {
   // ...
   useEffect(
-    // Effect from first render
+    // Effect del primer render
     () => {
       ChatAPI.subscribeToFriendStatus(10, handleStatusChange);
-      // Cleanup for effect from first render
+      // Función de limpieza del primer render
       return () => {
         ChatAPI.unsubscribeFromFriendStatus(10, handleStatusChange);
       };
@@ -604,14 +604,14 @@ function Example() {
   // ...
 }
 
-// Next render, props are {id: 20}
+// Siguiente render, las props son {id: 20}
 function Example() {
   // ...
   useEffect(
-    // Effect from second render
+    // Effect del segundo render
     () => {
       ChatAPI.subscribeToFriendStatus(20, handleStatusChange);
-      // Cleanup for effect from second render
+      // Función de limpieza del segundo render
       return () => {
         ChatAPI.unsubscribeFromFriendStatus(20, handleStatusChange);
       };
@@ -621,15 +621,15 @@ function Example() {
 }
 ```
 
-Kingdoms will rise and turn into ashes, the Sun will shed its outer layers to be a white dwarf, and the last civilization will end. But nothing will make the props “seen” by the first render effect’s cleanup anything other than `{id: 10}`.
+Reinados ascenderán y caeran, el Sol desprenderá sus capas externas para convertirse en una enana  blanca, y la última civilización llegará a su final. Pero nada hará que las propiedades "vistas" por el effect del primer render limpien algo diferente a `{id: 10}`.
 
-That’s what allows React to deal with effects right after painting — and make your apps faster by default. The old props are still there if our code needs them.
+Eso es lo que le permite a React tratar con effects justo después del dibujado — y hacer que tus aplicaciones sean rápidas por definición. Las propiedades viejas están allí si nuestro código las necesita.
 
-## Synchronization, Not Lifecycle
+## Sincronización Y No Ciclo De Vida
 
-One of my favorite things about React is that it unifies describing the initial render result and the updates. This [reduces the entropy](https://overreacted.io/the-bug-o-notation/) of your program.
+Una de mis cosas favoritas sobre React es que unifica la descripción del resultado y las propiedades del render inicial. Esto [reduce la entropía](https://overreacted.io/the-bug-o-notation/) de tu programa.
 
-Say my component looks like this:
+Digamos que mi componente se ve como esto:
 
 ```jsx
 function Greeting({ name }) {
