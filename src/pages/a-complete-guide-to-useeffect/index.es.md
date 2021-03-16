@@ -306,17 +306,17 @@ function Counter() {
 }
 ```
 
-This is why [in this demo](https://codesandbox.io/s/w2wxl3yo0l) event handlers “belong” to a particular render, and when you click, it keeps using the `counter` state *from* that render.
+Esta es la razón por la cual [en este demo](https://codesandbox.io/s/w2wxl3yo0l) la función que maneja el evento click "pertenece" a un render en particular, y cuando haces click, continúa utilizando el `counter` de acuerdo al estado *de* su ese render.
 
-**Inside any particular render, props and state forever stay the same.** But if props and state are isolated between renders, so are any values using them (including the event handlers). They also “belong” to a particular render. So even async functions inside an event handler will “see” the same `count` value.
+**Dentro de un render en particular, las propiedades y el estado se mantienen iguales para siempre.** Pero si las propiedades y el estado están aislados entre renders, así también están cualquiera que las utilice (incluyendo los manejadores de eventos). Ellos también "pertenecen" a un render en particular. De manera que incluso funciones async dentro de un manejador de eventos van a "ver" el mismo valor de `count`.
 
-*Side note: I inlined concrete `count` values right into `handleAlertClick` functions above. This mental substitution is safe because `count` can’t possibly change within a particular render. It’s declared as a `const` and is a number. It would be safe to think the same way about other values like objects too, but only if we agree to avoid mutating state. Calling `setSomething(newObj)` with a newly created object instead of mutating it is fine because state belonging to previous renders is intact.*
+*Nota: Puse entre líneas valores concretos para `count` en la función `handleAlertClick` en los ejemplos de arriba. Esta substitución mental es segura porque el valor de `count` no es posible que cambie dentro de un mismo render. Es declarado como una `const` y es un numero. Sería seguro pensar de la misma manera acerca de otros valores como objetos, pero solo si podemos acordar omitir mutar el estado. Llamar `setSomething(newObj)` con un objeto recientemente creado en lugar de mutarlo está bien porque el estado que pertenece a renders previos está intacto.*
 
-## Each Render Has Its Own Effects
+## Cada Render Tiene Sus Propios Effect
 
-This was supposed to be a post about effects but we still haven’t talked about effects yet! We’ll rectify this now. Turns out, effects aren’t really any different.
+Se suponía que esta publicación sería acerca de effects pero aún no hemos hablado nada de ellos! Arreglaremos eso ahora. Resulta que, los effects no son para nada diferentes.
 
-Let’s go back to an example from [the docs](https://reactjs.org/docs/hooks-effect.html):
+Regresemos a un ejemplo de [la documentación](https://reactjs.org/docs/hooks-effect.html):
 
 ```jsx{4-6}
 function Counter() {
@@ -337,24 +337,24 @@ function Counter() {
 }
 ```
 
-**Here’s a question for you: how does the effect read the latest `count` state?**
+**¿Pregunta: cómo hace el effect para leer el último valor del estado de `count`?**
 
-Maybe, there’s some kind of “data binding” or “watching” that makes `count` update live inside the effect function? Maybe `count` is a mutable variable that React sets inside our component so that our effect always sees the latest value?
+¿Talvez, hay algún tipo de "datos vinculados" u "observador" que hace que `count` se actualice en vivo adentro de la función effect? ¿Talvez `count` es una variable mutable que React define dentro de nuestro componente de manera que nuestro effect ve la última valor?
 
-Nope.
+No.
 
-We already know that `count` is constant within a particular component render. Event handlers “see” the `count` state from the render that they “belong” to because `count` is a variable in their scope. The same is true for effects!
+Ya sabes que `count` es una constante dentro de un render particular de nuestro componente. Los manejadores de eventos "ven" el estado `count` correspondiente al render al cual "pertenece" porque `count` es una variable en su ámbito. Lo mismo aplica para los effects!
 
-**It’s not the `count` variable that somehow changes inside an “unchanging” effect. It’s the _effect function itself_ that’s different on every render.**
+**No es la variable `count` que de alguna manera cambia dentro de un effect "inmutable". Es _la función effect en sí misma_ que es diferente para cada render.**
 
-Each version “sees” the `count` value from the render that it “belongs” to:
+Cada version "ve" el valor de `count` correspondiente al render que "pertenece":
 
 ```jsx{5-8,17-20,29-32}
-// During first render
+// Durante el primer render
 function Counter() {
   // ...
   useEffect(
-    // Effect function from first render
+    // La función Effect del primer render
     () => {
       document.title = `You clicked ${0} times`;
     }
@@ -362,11 +362,11 @@ function Counter() {
   // ...
 }
 
-// After a click, our function is called again
+// Despues del click, nuestra función es llamada de nuevo
 function Counter() {
   // ...
   useEffect(
-    // Effect function from second render
+    // La función Effect del segundo render
     () => {
       document.title = `You clicked ${1} times`;
     }
@@ -374,11 +374,11 @@ function Counter() {
   // ...
 }
 
-// After another click, our function is called again
+// Después de otro click, nuestra función es llamada de nuevo
 function Counter() {
   // ...
   useEffect(
-    // Effect function from third render
+    // La función Effect del tercer render
     () => {
       document.title = `You clicked ${2} times`;
     }
@@ -387,50 +387,50 @@ function Counter() {
 }
 ```
 
-React remembers the effect function you provided, and runs it after flushing changes to the DOM and letting the browser paint the screen.
+React recuerda la función effect que proporcionaste, y la ejecuta después de despachar cambios  hacia el DOM y dejar que el navegador pinte la pantalla.
 
-So even if we speak of a single conceptual *effect* here (updating the document title), it is represented by a *different function* on every render — and each effect function “sees” props and state from the particular render it “belongs” to.
+De manera que aún cuando hablamos de un solo *effect* conceptualmente (que actualiza el dítulo del documento), es representado por una *función diferente* en cada render — y cada función effect "ve" propiedades y estado correspondientes al render en particular al cuál pertenece.
 
-**Conceptually, you can imagine effects are a *part of the render result*.**
+**Conceptualmente, puedes imaginar que los effects son *parte del resultado del render*. **
 
-Strictly saying, they’re not (in order to [allow Hook composition](https://overreacted.io/why-do-hooks-rely-on-call-order/) without clumsy syntax or runtime overhead). But in the mental model we’re building up, effect functions *belong* to a particular render in the same way that event handlers do.
-
----
-
-To make sure we have a solid understanding, let’s recap our first render:
-
-* **React:** Give me the UI when the state is `0`.
-* **Your component:**
-  * Here’s the render result:
-  `<p>You clicked 0 times</p>`.
-  * Also remember to run this effect after you’re done: `() => { document.title = 'You clicked 0 times' }`.
-* **React:** Sure. Updating the UI. Hey browser, I’m adding some stuff to the DOM.
-* **Browser:** Cool, I painted it to the screen.
-* **React:** OK, now I’m going to run the effect you gave me.
-  * Running `() => { document.title = 'You clicked 0 times' }`.
+Hablando estrictamente, no lo son (con el propósito de [permitir composición de Hooks](https://overreacted.io/why-do-hooks-rely-on-call-order/) evitando sintáxis tosca o impacto en el tiempo de ejecución). Pero en el modelo mental que estamos construyendo, las funciones effect *pertenecen* a un render en particular en la misma forma que los manejadores de evento lo hacen.
 
 ---
 
-Now let’s recap what happens after we click:
+Para asegur que tenemos una comprensión sólida, revisemos nuestro primer render:
 
-* **Your component:** Hey React, set my state to `1`.
-* **React:** Give me the UI for when the state is `1`.
-* **Your component:**
-  * Here’s the render result:
+* **React:** Dame la UI para cuando el estado es `0`.
+* **Tu componente:**
+  * Aquí está el resultado del render:
+  `<p>You clicked 0 times</p>`
+  * También recuerda ejecutar este effect después de que hayas terminado `() => { document.title = 'You clicked 0 times' }`.
+* **React:** Claro. Actualizando la UI. Hey navegador, estoy agregando algunas cosas al DOM.
+* **Browser:** Super, ya lo dibujé en la pantalla.
+* **React:** Ok, ahora voy a ejecutar el effect que me indicaste.
+  * Ejecutando `() => { document.title = 'You clicked 0 times' }`.
+
+---
+
+Ahora hagamos una revisión de lo que pasa después que hacemos click:
+
+* **Tu componente:** Hey React, pon en mi estado el valor `1`.
+* **React:** Dame la UI para cuando el estado es `1`.
+* **Tu componente:**
+  * Aquí está el resultado del render:
   `<p>You clicked 1 times</p>`.
-  * Also remember to run this effect after you’re done: `() => { document.title = 'You clicked 1 times' }`.
-* **React:** Sure. Updating the UI. Hey browser, I’ve changed the DOM.
-* **Browser:** Cool, I painted your changes to the screen.
-* **React:** OK, now I’ll run the effect that belongs to the render I just did.
-  * Running `() => { document.title = 'You clicked 1 times' }`.
+  * También recuerda ejecutar este effect después de que hayas terminado: `() => { document.title = 'You clicked 1 times' }`.
+* **React:** Claro. Actualizando la UI. Hey navegador, he cambiado el DOM.
+* **Browser:** Super, dibujé tus cambios en la pantalla.
+* **React:** Ok, ahora voy a ejecutar el effect que corresponde al render que acabo de hacer.
+  * Ejecutando `() => { document.title = 'You clicked 1 times' }`.
 
 ---
 
-## Each Render Has Its Own... Everything
+## Cada Render Tiene Su Propio... Todo
 
-**We know now that effects run after every render, are conceptually a part of the component output, and “see” the props and state from that particular render.**
+**En este punto ya sabemos que los effects son ejecutados después de cada render, que son conceptualmente parte de la salida del componente, y que "ven" las propiedades y el estado de ese render en particular.**
 
-Let’s try a thought experiment. Consider this code:
+Hagamos un experimento mental. Considera este código:
 
 ```jsx{4-8}
 function Counter() {
@@ -453,22 +453,22 @@ function Counter() {
 }
 ```
 
-If I click several times with a small delay, what is the log going to look like?
+Si hago click muchas veces con un leve retraso, cómo se verá el log?
 
 ---
 
-*spoilers ahead*
+*vienen spoilers*
 
 ---
 
-You might think this is a gotcha and the end result is unintuitive. It’s not! We’re going to see a sequence of logs — each one belonging to a particular render and thus with its own `count` value. You can [try it yourself](https://codesandbox.io/s/lyx20m1ol):
+Puede que pienses que es una trampa y que el resultado es poco intuitivo. ¡No lo es! Veremos una secuencia de logs — cada uno perteneciente a su render particular y así con su propio valor de `count`. Puedes [probarlo tu mismo](https://codesandbox.io/s/lyx20m1ol):
 
 
-![Screen recording of 1, 2, 3, 4, 5 logged in order](./timeout_counter.gif)
+![Grabación de pantalla de 1, 2, 3, 4, 5 registrados en orden](./timeout_counter.gif)
 
-You may think: “Of course that’s how it works! How else could it work?”
+Puede que pienses: "¡Por supuesto que así es como funciona! ¿De qué otra forma podría funcionar?"
 
-Well, that’s not how `this.state` works in classes. It’s easy to make the mistake of thinking that this [class implementation](https://codesandbox.io/s/kkymzwjqz3) is equivalent:
+Pues bien, así no es como `this.state` funciona en clases. Es facil cometer el error de pensar que esta [implementación con clases](https://codesandbox.io/s/kkymzwjqz3) es equivalente:
 
 ```jsx
   componentDidUpdate() {
@@ -478,19 +478,19 @@ Well, that’s not how `this.state` works in classes. It’s easy to make the mi
   }
 ```
 
-However, `this.state.count` always points at the *latest* count rather than the one belonging to a particular render. So you’ll see `5` logged each time instead:
+Sin embargo, `this.state.count` siempre apunta al *último* count en lugar apuntar al valor que corresponda a cada render. De este modo, vas a ver `5` aparecer en su lugar registrado cada vez:
 
-![Screen recording of 5, 5, 5, 5, 5 logged in order](./timeout_counter_class.gif)
+![Grabación de pantalla 5, 5, 5, 5, 5 registrados en orden](./timeout_counter_class.gif)
 
-I think it’s ironic that Hooks rely so much on JavaScript closures, and yet it’s the class implementation that suffers from [the canonical wrong-value-in-a-timeout confusion](https://wsvincent.com/javascript-closure-settimeout-for-loop/) that’s often associated with closures. This is because the actual source of the confusion in this example is the mutation (React mutates `this.state` in classes to point to the latest state) and not closures themselves.
+Pienso que es irónico que los Hooks dependan tanto en closures de JavaScript, y aún así son las implementaciones con clases las que sufren de [la confusión canónica del valor-incorrecto-en-un-timeout](https://wsvincent.com/javascript-closure-settimeout-for-loop/) que frecuentemente es asociada con closures. Esto es porque la fuente de confusión en este ejemplo es la mutación (React muta `this.state` en clases para apuntar al ultimo estado) y no los closures en sí mismos.
 
-**Closures are great when the values you close over never change. That makes them easy to think about because you’re essentially referring to constants.** And as we discussed, props and state never change within a particular render. By the way, we can fix the class version... by [using a closure](https://codesandbox.io/s/w7vjo07055).
+**Los closures son grandiosos cuando los valores que encierras nunca cambian. Eso hace que sea fácil pensar en ellos porque esencialmente te estás refiriendo a constantes.** Y tal como discutimos, las propiedades y el estado nunca cambian dentro de un render en particular. Por cierto, podemos arreglar la versión que usa clases... [a través de closures](https://codesandbox.io/s/w7vjo07055).
 
-## Swimming Against the Tide
+## Nadando Contra Corriente
 
-At this point it’s important that we call it out explicitly: **every** function inside the component render (including event handlers, effects, timeouts or API calls inside them) captures the props and state of the render call that defined it.
+En este punto es importante que lo digamos en voz alta: **cada** función adentro del render de un componente (incluyendo menejadores de eventos, effects, timeouts o llamadas a API dentro de efectos) capturan las propiedades y el estado del render donde fueron definidos.
 
-So these two examples are equivalent:
+Por lo tanto estos dos ejemplos son equivalentes:
 
 ```jsx{4}
 function Example(props) {
@@ -515,9 +515,9 @@ function Example(props) {
 }
 ```
 
-**It doesn’t matter whether you read from props or state “early” inside of your component.** They’re not going to change! Inside the scope of a single render, props and state stay the same. (Destructuring props makes this more obvious.)
+**No importa si vas a leer de las propiedades o el estado "temprano" dentro de tu componente.** ¡Ninguno de ellos cambiará! Dentro del alcance de un render en particular, las propiedades y el estado se mantienen iguales. (Desestructurar las propiedades hace esto aún más obvio.)
 
-Of course, sometimes you *want* to read the latest rather than captured value inside some callback defined in an effect. The easiest way to do it is by using refs, as described in the last section of [this article](https://overreacted.io/how-are-function-components-different-from-classes/).
+Claro, algunas veces *quieres* leer el último valor en lugar del valor capturado dentro de algún callback definido en un effect. La forma más facil de lograrlo es a través de refs, tal como está descrito en la última sección de [este artículo](https://overreacted.io/how-are-function-components-different-from-classes/).
 
 Be aware that when you want to read the *future* props or state from a function in a *past* render, you’re swimming against the tide. It’s not *wrong* (and in some cases necessary) but it might look less “clean” to break out of the paradigm. This is an intentional consequence because it helps highlight which code is fragile and depends on timing. In classes, it’s less obvious when this happens.
 
