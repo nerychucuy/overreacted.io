@@ -453,7 +453,7 @@ function Counter() {
 }
 ```
 
-Si hago click muchas veces con un leve retraso, cómo se verá el log?
+Si hago click muchas veces con un leve retraso, ¿cómo se verá el log?
 
 ---
 
@@ -641,13 +641,13 @@ function Greeting({ name }) {
 }
 ```
 
-It doesn’t matter if I render `<Greeting name="Dan" />` and later `<Greeting name="Yuzhi" />`, or if I just render `<Greeting name="Yuzhi" />`. In the end, we will see “Hello, Yuzhi” in both cases.
+No importa si renderizo `<Greeting name="Dan" />` y luego `<Greeting name="Yuzhi" />`, o si simplemente renderizo `<Greeting name="Yuzhi" />`. Al final, veremos "Hello, Yuzhi" en ambos casos.
 
-People say: “It’s all about the journey, not the destination”. With React, it’s the opposite. **It’s all about the destination, not the journey.** That’s the difference between `$.addClass` and `$.removeClass` calls in jQuery code (our “journey”) and specifying what the CSS class *should be* in React code (our “destination”).
+Algunos dicen: "Lo importante es el camino, no el destino". Con React, es lo contrario. **Lo importante es el destino, no el camino.** Esa es la diferencia entre las llamadas a `$.addClass` y `$.removeClass` en jQuery (nuestro "camino") y el espeficiar cuál es la clase de CSS que *debe ser* en React (nuestro "destino")l
 
-**React synchronizes the DOM according to our current props and state.** There is no distinction between a “mount” or an “update” when rendering.
+**React sincroniza el DOM de acuerdo al valor actual de las propiedades y el estado.** No hay distinción entre "montar" o "actualizar" cuando se trata de renderizar.
 
-You should think of effects in a similar way. **`useEffect` lets you _synchronize_ things outside of the React tree according to our props and state.**
+Debes ver a los effects de una forma similar. **`useEffect` te permite _sincronizar_ cosas fuera del árbol de React con base en las propiedades y el estado.**
 
 ```jsx{2-4}
 function Greeting({ name }) {
@@ -662,19 +662,19 @@ function Greeting({ name }) {
 }
 ```
 
-This is subtly different from the familiar *mount/update/unmount* mental model. It is important really to internalize this. **If you’re trying to write an effect that behaves differently depending on whether the component renders for the first time or not, you’re swimming against the tide!** We’re failing at synchronizing if our result depends on the “journey” rather than the “destination”.
+Esto es sutilmente diferente del modelo mental de *montar/actualizar/desmontar* al que estamos familiarizados. Es importante realmente internalizar esta idea. **Si estás intentando escribir un effect que se comporta diferente dependiendo de si el componente está siendo renderizado por primera vez o no, ¡entonces estás nadando contra corriente!** Estamos fallando si nuestro resultado dependen del "camino" y no del "destino".
 
-It shouldn’t matter whether we rendered with props A, B, and C, or if we rendered with C immediately. While there may be some temporary differences (e.g. while we’re fetching data), eventually the end result should be the same.
+No debiera importar si renderizamos con las propiedades A, B y C, o si renderizamos inmediatamente C. Aún cuando puede haber unas diferencias temporarles (por ejemplo, mientras obtenemos datos), eventualmente el resultado final debe ser el mismo.
 
-Still, of course running all effects on *every* render might not be efficient. (And in some cases, it would lead to infinite loops.)
+Aún así, es claro que ejecutar todos los effects en *cada* render puede ser ineficient. (Y en algunos casos, llevará a bucles infinitos.)
 
-So how can we fix this?
+Entonces, ¿cómo arreglamos esto?
 
-## Teaching React to Diff Your Effects
+## Entrenando A React A Diferenciar Tus Effects
 
-We’ve already learned that lesson with the DOM itself. Instead of touching it on every re-render, React only updates the parts of the DOM that actually change.
+Ya hemos aprendido esta lección con el DOM. En lugar de cambiarlo en cada renderizado, React solo actualiza las partes del DOM que cambiaron.
 
-When you’re updating
+Cuando estás actualizando de
 
 ```jsx
 <h1 className="Greeting">
@@ -682,7 +682,7 @@ When you’re updating
 </h1>
 ```
 
-to
+a
 
 ```jsx
 <h1 className="Greeting">
@@ -690,23 +690,23 @@ to
 </h1>
 ```
 
-React sees two objects:
+React ve dos objetos:
 
 ```jsx
 const oldProps = {className: 'Greeting', children: 'Hello, Dan'};
 const newProps = {className: 'Greeting', children: 'Hello, Yuzhi'};
 ```
 
-It goes over each of their props and determine that `children` have changed and need a DOM update, but `className` did not. So it can just do:
+Va por cada una de sus propiedades y determina que `children` ha cambiado y necesita una actualización del DOM, pero `className` no cambió. Por lo que puede hacer solamente:
 
 ```jsx
 domNode.innerText = 'Hello, Yuzhi';
-// No need to touch domNode.className
+// Sin necesidad de actualizar domNode.className
 ```
 
-**Could we do something like this with effects too? It would be nice to avoid re-running them when applying the effect is unnecessary.**
+**¿Podemos hacer algo similar con los effects? Sería bueno poder evitar volver a ejecutarlos si no son necesarios**
 
-For example, maybe our component re-renders because of a state change:
+Por ejemplo, tal vez nuestro componente re-renderiza a causa del cambio en un estado:
 
 ```jsx{11-13}
 function Greeting({ name }) {
@@ -727,30 +727,30 @@ function Greeting({ name }) {
 }
 ```
 
-But our effect doesn’t use the `counter` state. **Our effect synchronizes the `document.title` with the `name` prop, but the `name` prop is the same.** Re-assigning `document.title` on every counter change seems non-ideal.
+Pero nuestro effect no utilizar el estado `counter`. **Nuestro effect sincroniza el `document.title` con la propiedad `name` pero dicha propiedad es la misma.** Re-asignar `document.title` por cada contador no parece algo ideal.
 
-OK, so can React just... diff effects?
+Está bien, entonces ¿puede React simplemente... diferenciar entre sus effects?
 
 
 ```jsx
 let oldEffect = () => { document.title = 'Hello, Dan'; };
 let newEffect = () => { document.title = 'Hello, Dan'; };
-// Can React see these functions do the same thing?
+// Puede React ver que estas funciones están haciendo la misma cosa?
 ```
 
-Not really. React can’t guess what the function does without calling it. (The source doesn’t really contain specific values, it just closes over the `name` prop.)
+No realmente. React no puede adivinar qué es lo que hace la función sin llamarla. (La implementación no contiene valor específicos, solamente utiliza el valor de la propiedad `name`)
 
-This is why if you want to avoid re-running effects unnecessarily, you can provide a dependency array (also known as “deps”) argument to `useEffect`:
+Esta es la razón por la cual si deseas evitar re-ejecutar effects de manera innecesaria, puedes proporcionar un arreglo de dependencias (también conocido como "deps") en `useEffect`:
 
 ```jsx{3}
   useEffect(() => {
     document.title = 'Hello, ' + name;
-  }, [name]); // Our deps
+  }, [name]); // Nuestras dependencias
 ```
 
-**It’s like if we told React: “Hey, I know you can’t see _inside_ this function, but I promise it only uses `name` and nothing else from the render scope.”**
+**Es como si le dijeramos a React: "Hey, ya sé que no puedes ver _adentro_ de esta función, pero te prometo que solamente utiliza `name` y nada más de las propiedades de ese render."**
 
-If each of these values is the same between the current and the previous time this effect ran, there’s nothing to synchronize so React can skip the effect:
+Si cada uno de estos valores es el mismo entre la ejecución del effect actual y el anterior, entonces no hay nada que sincronizar y React puede ignorar ese effect:
 
 ```jsx
 const oldEffect = () => { document.title = 'Hello, Dan'; };
@@ -759,11 +759,11 @@ const oldDeps = ['Dan'];
 const newEffect = () => { document.title = 'Hello, Dan'; };
 const newDeps = ['Dan'];
 
-// React can't peek inside of functions, but it can compare deps.
-// Since all deps are the same, it doesn’t need to run the new effect.
+// React no puede ver adentro de las funciones, pero puede comprar sus dependencias
+// Dado que todas las dependencias son las mismas, no necesita ejecutar el `nuevo effect`
 ```
 
-If even one of the values in the dependency array is different between renders, we know running the effect can’t be skipped. Synchronize all the things!
+Si tan solo uno de los valores en el arreglo de dependencias es diferente entre renderizados, entonces no debemos ignorar el `useEffect` . Sincroniza todo!
 
 ## Don’t Lie to React About Dependencies
 
