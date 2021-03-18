@@ -759,15 +759,15 @@ const oldDeps = ['Dan'];
 const newEffect = () => { document.title = 'Hello, Dan'; };
 const newDeps = ['Dan'];
 
-// React no puede ver adentro de las funciones, pero puede comprar sus dependencias
+// React no puede ver adentro de las funciones, pero puede comparar sus dependencias
 // Dado que todas las dependencias son las mismas, no necesita ejecutar el `nuevo effect`
 ```
 
-Si tan solo uno de los valores en el arreglo de dependencias es diferente entre renderizados, entonces no debemos ignorar el `useEffect` . Sincroniza todo!
+Si tan solo uno de los valores en el arreglo de dependencias es diferente entre renders, entonces no debemos ignorar el `useEffect`. Sincroniza todo!
 
-## Don’t Lie to React About Dependencies
+## No Le Mientas a React Sobre Las Dependencias
 
-Lying to React about dependencies has bad consequences. Intuitively, this makes sense, but I’ve seen pretty much everyone who tries `useEffect` with a mental model from classes try to cheat the rules. (And I did that too at first!)
+Mentirle a React sobre las dependencias tiene malas consecuencias. Intuitivamente, puede parecer lógico hacerlo, pero he visto casi a todos los que usan `useEffect` aplicando el modelo mental de clases tratar de hacer trampa. (¡Yo también lo hice al incio!)
 
 ```jsx
 function SearchResults() {
@@ -777,23 +777,23 @@ function SearchResults() {
 
   useEffect(() => {
     fetchData();
-  }, []); // Is this okay? Not always -- and there's a better way to write it.
+  }, []); // ¿Es correcto hacer esto? No siempre -- y hay una mejor forma de escribirlo
 
   // ...
 }
 ```
 
-*(The [Hooks FAQ](https://reactjs.org/docs/hooks-faq.html#is-it-safe-to-omit-functions-from-the-list-of-dependencies) explains what to do instead. We'll come back to this example [below](#moving-functions-inside-effects).)*
+*(El [FAQ de Hooks](https://reactjs.org/docs/hooks-faq.html#is-it-safe-to-omit-functions-from-the-list-of-dependencies) explica qué hacer en estos casos. Vamos a volver a revisar este ejemplo [abajo](#moving-functions-inside-effects).)*
 
-“But I only want to run it on mount!”, you’ll say. For now, remember: if you specify deps, **_all_ values from inside your component that are used by the effect _must_ be there**. Including props, state, functions — anything in your component.
+"¡Pero yo solo quiero ejecutarlo cuando se monte el componente!", podrías decir. Por ahora, recuerda: si especificas dependencias, **_todos_ los valores dentro de tu componente que son utilizados por el effect _deben_ estar allí**. Incluyendo propiedades, estado, funciones — cualquier cosa en tu componente.
 
-Sometimes when you do that, it causes a problem. For example, maybe you see an infinite refetching loop, or a socket is recreated too often. **The solution to that problem is _not_ to remove a dependency.** We’ll look at the solutions soon.
+En ocasiones cuando lo haces, ocasiona un problema. Por ejemplo, puede ser que hayas visto un ciclo infinito al traer datos, o un socket que es creado con mucha frecuencia. **La solución a ese problema _no_ es remover la dependencia.** Pronto veremos cuáles son las soluciones.
 
-But before we jump to solutions, let’s understand the problem better.
+Pero antes de saltar a las soluciones, entendamos el problema.
 
-## What Happens When Dependencies Lie
+## Lo Que Sucede Cuando Las Dependencias Mienten
 
-If deps contain every value used by the effect, React knows when to re-run it:
+Si las dependencias contienen cada valor utilizado por el effect, React sabe cuando correrlo de nuevo:
 
 ```jsx{3}
   useEffect(() => {
@@ -801,25 +801,25 @@ If deps contain every value used by the effect, React knows when to re-run it:
   }, [name]);
 ```
 
-![Diagram of effects replacing one another](./deps-compare-correct.gif)
+![Diagrama de effects remplazándose entre si](./deps-compare-correct.gif)
 
-*(Dependencies are different, so we re-run the effect.)*
+*(Las dependencias son diferentes, entonces ejecutamos de nuevo el effect)*
 
-But if we specified `[]` for this effect, the new effect function wouldn’t run:
+Pero si especificamos `[]` para este effect, la nueva función effect no se ejecutaría:
 
 ```jsx{3}
   useEffect(() => {
     document.title = 'Hello, ' + name;
-  }, []); // Wrong: name is missing in deps
+  }, []); // Incorrecto: name hace falta en las dependencias
 ```
 
-![Diagram of effects replacing one another](./deps-compare-wrong.gif)
+![Diagrama de effects remplazándose entre si](./deps-compare-wrong.gif)
 
-*(Dependencies are equal, so we skip the effect.)*
+*(Las dependencias son iguales, entonces ignoramos este effect.)*
 
-In this case the problem might seem obvious. But the intuition can fool you in other cases where a class solution “jumps out” from your memory.
+En este caso, el problema puede parecer obvio. Pero la intuición puede engañarte en otras ocasiones cuando una solución que usarías para classes "salta" de tu memoria.
 
-For example, let’s say we’re writing a counter that increments every second. With a class, our intuition is: “Set up the interval once and destroy it once”. Here’s an [example](https://codesandbox.io/s/n5mjzjy9kl) of how we can do it. When we mentally translate this code to `useEffect`, we instinctively add `[]` to the deps. “I want it to run once”, right?
+Por ejemplo, digamos que estamos escribiendo un contador que incrementa cada segundo. En el caso de una clase, nuestra intuición es: "Definir el intervalo una vez y destruilo una vez". Aquí hay un [ejemplo](https://codesandbox.io/s/n5mjzjy9kl) de cómo podemos hacerlo. Cuando traducimos mentalmente este código a `useEffect`, instintivamente agregamos `[]` a las dependencias. "Quiero que se ejecute solo una vez", ¿cierto?
 
 ```jsx{9}
 function Counter() {
@@ -836,37 +836,37 @@ function Counter() {
 }
 ```
 
-However, this example [only *increments* once](https://codesandbox.io/s/91n5z8jo7r). *Oops.*
+Sin embargo, este ejemplo [solo *incrementa* una vez](https://codesandbox.io/s/91n5z8jo7r). *Rayos.*
 
-If your mental model is “dependencies let me specify when I want to re-trigger the effect”, this example might give you an existential crisis. You *want* to trigger it once because it’s an interval — so why is it causing issues?
+Si tu modelo mental es "las dependencias me permiten especificar cuando quiero volver a llamar al effect", este ejemplo te debe estar ocasionando una crisis existencial. Tu *quieres* llamarlo una vez porque es un interval — entonces ¿por qué no está funcionando?
 
-However, this makes sense if you know that dependencies are our hint to React about *everything* that the effect uses from the render scope. It uses `count` but we lied that it doesn’t with `[]`. It’s only a matter of time before this bites us!
+Sin embargo, esto hace sentido si sabes que las dependencias son nuestra pista para reaccionar a *todo* lo que el efecto usa dentro del alcance del render. Usa `count` pero mentimos diciendo que no lo usa cuando pusimos `[]`. ¡Solo es cuestión de tiempo para que nos muerda!
 
-In the first render, `count` is `0`. Therefore, `setCount(count + 1)` in the first render’s effect means `setCount(0 + 1)`. **Since we never re-run the effect because of `[]` deps, it will keep calling `setCount(0 + 1)` every second:**
+En el primer render, `count` es `0`. Por lo tanto, `setCount(count + 1)` en el effect del primer render es `setCount(0 + 1)`. **Dado que nunca volvemos a ejecutar el effect a causa de `[]` en las dependencias, el interval continuará llamando `setCount(0 + `)` cada segundo:**
 
 ```jsx{8,12,21-22}
-// First render, state is 0
+// Primer render, el estado es 0
 function Counter() {
   // ...
   useEffect(
-    // Effect from first render
+    // Effect del primer render
     () => {
       const id = setInterval(() => {
-        setCount(0 + 1); // Always setCount(1)
+        setCount(0 + 1); // Siempre setCount(1)
       }, 1000);
       return () => clearInterval(id);
     },
-    [] // Never re-runs
+    [] // Nunca se vuelve a ejecutar
   );
   // ...
 }
 
-// Every next render, state is 1
+// Para cada render siguiente, el estado es 1
 function Counter() {
   // ...
   useEffect(
-    // This effect is always ignored because
-    // we lied to React about empty deps.
+    // Este effect siempre será ignorado porque
+    // le mentimos a React al colocar [] en las dependencias
     () => {
       const id = setInterval(() => {
         setCount(1 + 1);
@@ -879,9 +879,9 @@ function Counter() {
 }
 ```
 
-We lied to React by saying our effect doesn’t depend on a value from inside our component, when in fact it does!
+Le mentimos a React al decirle que nuestro effect no depende de un valor dentro de nuestro componente, ¡cuando de hecho si lo hace!
 
-Our effect uses `count` — a value inside the component (but outside the effect):
+Nuestro effect usa `count` — un valor que existe adentro de nuestro componente (pero fuera del effect):
 
 ```jsx{1,5}
   const count = // ...
@@ -894,19 +894,19 @@ Our effect uses `count` — a value inside the component (but outside the effect
   }, []);
 ```
 
-Therefore, specifying `[]` as a dependency will create a bug. React will compare the dependencies, and skip updating this effect:
+Por lo tanto, al especificar `[]` como dependencia creamos un error. React va a comparar las dependencias y va a ignorar actualizar este effect:
 
-![Diagram of stale interval closure](./interval-wrong.gif)
+![Diagrama de un intervalo con closure incorrecto](./interval-wrong.gif)
 
-*(Dependencies are equal, so we skip the effect.)*
+*(Las dependencias son iguales, entonces nos saltamos la ejecución del effect)*
 
-Issues like this are difficult to think about. Therefore, I encourage you to adopt it as a hard rule to always be honest about the effect dependencies, and specify them all. (We provide a [lint rule](https://github.com/facebook/react/issues/14920) if you want to enforce this on your team.)
+Problemas como estos son difíciles de conceptualizar. Por lo tanto, les recomiendo que adopten como una regla de manera estricta siempre ser honestos sobre las dependencias de sus effects y especificarlas todas. (Proveemos una [regla de lint](https://github.com/facebook/react/issues/14920) si quieres forzar esto en tu equipo.)
 
-## Two Ways to Be Honest About Dependencies
+## Dos Formas De Ser Honestos Acerca De Las Dependencias
 
-There are two strategies to be honest about dependencies. You should generally start with the first one, and then apply the second one if needed.
+Existen dos estrateigas para ser honestos acerca de las dependencias. En principio, deberías iniciar siempre con la primera estrategia, y luego aplicar la segunda si fuera necesario.
 
-**The first strategy is to fix the dependency array to include _all_ the values inside the component that are used inside the effect.** Let’s include `count` as a dep:
+**La primera estrategia es corregir el arreglo de dependencias haciendo que incluya _todos_ los valores dentro del componente que son usados por el effect.** Incluyamos `count` como dependencia:
 
 ```jsx{3,6}
 useEffect(() => {
@@ -917,14 +917,14 @@ useEffect(() => {
 }, [count]);
 ```
 
-This makes the dependency array correct. It may not be *ideal* but that’s the first issue we needed to fix. Now a change to `count` will re-run the effect, with each next interval referencing `count` from its render in `setCount(count + 1)`:
+Esto hace que el arreglo de dependencias esté correcto. Puede que no sea *ideal* pero ese es el primer problema que debíamos arreglar. Ahora un cambio en `count` hará que se vuelva a ejecutar el effect, haciendo que cada interval se refiera al `count` de su render en `setCount(count + 1)`:
 
 ```jsx{8,12,24,28}
-// First render, state is 0
+// Primer render, el estado es 0
 function Counter() {
   // ...
   useEffect(
-    // Effect from first render
+    // Effect del primer render
     () => {
       const id = setInterval(() => {
         setCount(0 + 1); // setCount(count + 1)
@@ -936,11 +936,11 @@ function Counter() {
   // ...
 }
 
-// Second render, state is 1
+// Segundo render, el valor de count es 1
 function Counter() {
   // ...
   useEffect(
-    // Effect from second render
+    // Effect del segundo render
     () => {
       const id = setInterval(() => {
         setCount(1 + 1); // setCount(count + 1)
@@ -953,11 +953,11 @@ function Counter() {
 }
 ```
 
-That would [fix the problem](https://codesandbox.io/s/0x0mnlyq8l) but our interval would be cleared and set again whenever the `count` changes. That may be undesirable:
+Eso podría [arreglar el problema](https://codesandbox.io/s/0x0mnlyq8l) pero nuestro intervalo sería limpiado y re-definido cada vez que `count` cambie. Eso puede ser indeseable:
 
-![Diagram of interval that re-subscribes](./interval-rightish.gif)
+![Diagrama de intervalo que se re-suscribe](./interval-rightish.gif)
 
-*(Dependencies are different, so we re-run the effect.)*
+*(Las dependencias son diferentes, entonces ejecutamos de nuevo el effect.)*
 
 ---
 
