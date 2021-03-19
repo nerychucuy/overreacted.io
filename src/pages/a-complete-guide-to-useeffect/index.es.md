@@ -961,15 +961,15 @@ Eso podría [arreglar el problema](https://codesandbox.io/s/0x0mnlyq8l) pero nue
 
 ---
 
-**The second strategy is to change our effect code so that it wouldn’t *need* a value that changes more often than we want.** We don’t want to lie about the dependencies — we just want to change our effect to have *fewer* of them.
+**La segunda estrategia es cambiar el código de nuestro effect de manera que no *necesite* un valor que cambie más frecuente de lo que queremos.** No queremos mentir acerca de las dependencias — solo queremos cambiar nuestro effect para que tenga *menos*.
 
-Let’s look at a few common techniques for removing dependencies.
+Veamos algunas técnicas comunes para remover dependencias.
 
 ---
 
-## Making Effects Self-Sufficient
+## Haciendo Que Los Effects Sean Auto-Suficientes
 
-We want to get rid of the `count` dependency in our effect.
+Queremos que `count` ya no sea una dependencia de nustro effect.
 
 ```jsx{3,6}
   useEffect(() => {
@@ -980,7 +980,7 @@ We want to get rid of the `count` dependency in our effect.
   }, [count]);
 ```
 
-To do this, we need to ask ourselves: **what are we using `count` for?** It seems like we only use it for the `setCount` call. In that case, we don’t actually need `count` in the scope at all. When we want to update state based on the previous state, we can use the [functional updater form](https://reactjs.org/docs/hooks-reference.html#functional-updates) of `setState`:
+Para lograrlo, debemos preguntarnos: **¿Para qué estamos usando `count`?** Parece que solo lo estamos utilizando en la llamada a `setCount`. En este caso, no necesitamos contar con `count` en este contexto. Cuando queremos actualizar el estado con base en su valor anterior, podemos usar la [forma funcional](https://reactjs.org/docs/hooks-reference.html#functional-updates) de `setState`:
 
 ```jsx{3}
   useEffect(() => {
@@ -991,33 +991,34 @@ To do this, we need to ask ourselves: **what are we using `count` for?** It seem
   }, []);
 ```
 
-I like to think of these cases as “false dependencies”. Yes, `count` was a necessary dependency because we wrote `setCount(count + 1)` inside the effect. However, we only truly needed `count` to transform it into `count + 1` and “send it back” to React. But React *already knows* the current `count`. **All we needed to tell React is to increment the state — whatever it is right now.**
+Me gusta conceptualizar estos casos como "falsas dependencias". Si, `count` era una dependencia necesaria porque estabamos usando `setCount(count + 1)` adentro del effect. Sin embargo, en realidad solo necesitamos `count`  para transformarlo en `count + 1` y "mandarlo de vuelta" a React. Pero React *ya tiene* el valor actual de `count`. **Todo lo que necesitamos decirle a React es que incremente el estado — cualquiera que sea just ahora.**
 
-That’s exactly what `setCount(c => c + 1)` does. You can think of it as “sending an instruction” to React about how the state should change. This “updater form” also helps in other cases, like when you [batch multiple updates](/react-as-a-ui-runtime/#batching).
+Eso es justo lo que `setCount(c => c + 1)` hace. Puedes verlo como "enviarle una instrucción" a React acerca de cómo debe cambiar el estado. Esta "forma de actualización" también ayuda en otros casos, como cuando tienes que [agrupar múltiples actualizaciones](/react-as-a-ui-runtime/#batching).
 
-**Note that we actually _did the work_ to remove the dependency. We didn’t cheat. Our effect doesn’t read the `counter` value from the render scope anymore:**
+**Notar que de hecho _cumplimos_ con remover la dependencia. No hicimos trampa. Nuestro effect ya no lee el valor de `counter` dentro del alcance de este render:**
 
-![Diagram of interval that works](./interval-right.gif)
+![Diagrama de un interval que funciona](./interval-right.gif)
 
-*(Dependencies are equal, so we skip the effect.)*
+*(Las dependencias son iguales, ignoramos este effect)*
 
-You can try it [here](https://codesandbox.io/s/q3181xz1pj).
+Puedes verlo funcionando [aquí](https://codesandbox.io/s/q3181xz1pj).
 
-Even though this effect only runs once, the interval callback that belongs to the first render is perfectly capable of sending the `c => c + 1` update instruction every time the interval fires. It doesn’t need to know the current `counter` state anymore. React already knows it.
+Aun cuando este effect solo se ejecuta una  vez, el callback del interval que pertenece al primer render es perfectamente capaz de enviar la instrucción de actualización `c => c + 1` cada vez que el intervalo se dispare. Ya no necesita saber el valor actual del `counter`. React ya lo sabe.
 
-## Functional Updates and Google Docs
+## Actualizaciones A Través De Funciones Y Google Docs
 
-Remember how we talked about synchronization being the mental model for effects? An interesting aspect of synchronization is that you often want to keep the “messages” between the systems untangled from their state. For example, editing a document in Google Docs doesn’t actually send the *whole* page to the server. That would be very inefficient. Instead, it sends a representation of what the user tried to do.
 
-While our use case is different, a similar philosophy applies to effects. **It helps to send only the minimal necessary information from inside the effects into a component.** The updater form like `setCount(c => c + 1)` conveys strictly less information than `setCount(count + 1)` because it isn’t “tainted” by the current count. It only expresses the action (“incrementing”). Thinking in React involves [finding the minimal state](https://reactjs.org/docs/thinking-in-react.html#step-3-identify-the-minimal-but-complete-representation-of-ui-state). This is the same principle, but for updates.
+¿Recuerdan que dijimos que la sincronziación era el modelo mental para los effects? Un aspecto interesante de la sincronización es que frecuentemente se quiere que los "mensajes" entre sistemas estén desenredados de su estado. Por ejemplo, al editar un documento en Google Docs no se envía *toda* la página al servidor. Eso sería muy ineficiente. En su lugare, envía una representación de lo que el usuario intentó hacer.
 
-Encoding the *intent* (rather than the result) is similar to how Google Docs [solves](https://medium.com/@srijancse/how-real-time-collaborative-editing-work-operational-transformation-ac4902d75682) collaborative editing. While this is stretching the analogy, functional updates serve a similar role in React. They ensure updates from multiple sources (event handlers, effect subscriptions, etc) can be correctly applied in a batch and in a predictable way.
+Aun cuando nuestro caso de uso es diferente, podemos aplicar una filosofía similar a los effects. **Ayuda enviar solo la información mínima necesaria desde dentro de los effects hacia el componente.** La forma de actualización `setCount(c => c + 1)` transmite estrictamente menos información que `setCount(count + 1)` porque no está "contaminada" con el valor actual de count. Solo expresa la acción ("incrementar"). Pensar en React involucra [encontrar el estado mínimo](https://reactjs.org/docs/thinking-in-react.html#step-3-identify-the-minimal-but-complete-representation-of-ui-state). Este es el mismo principio, pero para actualizaciones.
 
-**However, even `setCount(c => c + 1)` isn’t that great.** It looks a bit weird and it’s very limited in what it can do. For example, if we had two state variables whose values depend on each other, or if we needed to calculate the next state based on a prop, it wouldn’t help us. Luckily, `setCount(c => c + 1)` has a more powerful sister pattern. Its name is `useReducer`.
+Codificar la *intención* (en lugar del resultado) es similar a la manera en que Google Docs [resuleve](https://medium.com/@srijancse/how-real-time-collaborative-editing-work-operational-transformation-ac4902d75682) la edición colaborativa. Mientras que estas es una analogía bastante ajustada, las actualizaciones a través de funciones juegan un rol similar en React. Estas se aseguran que actualizaciones desde diferentes fuentes (manejadores de eventos, suscripciones a effects, etc) puedan ser aplicadas correctamente en lote y de manera predictiva.
 
-## Decoupling Updates from Actions
+**Sin embargo, incluso `setCount(c => c + 1)` no es lo mejor.** Se ve un poco raro y también es muy limitado. Por ejemplo, si tuvieramos dos variables de estado que dependieran una de la otra, o si tuvieramos que calcular el siguiente  estado con base en una propiedad, no nos ayudaría. Por suerte, `setCount(c => c + 1)` tiene un patrón hermano que es más poderoso. Su nombre es `useReducer`.
 
-Let’s modify the previous example to have two state variables: `count` and `step`. Our interval will increment the count by the value of the `step` input:
+## Desasociando Actualizaciones de las Acciones
+
+Modifiquemos el ejemplo previo de manera que tengamos dos variables en el estado: `count` y `step`. Nuestro intervalo va a incrementar count con el valor ingresado en el input para `step`:
 
 ```jsx{7,10}
 function Counter() {
@@ -1040,19 +1041,19 @@ function Counter() {
 }
 ```
 
-(Here’s a [demo](https://codesandbox.io/s/zxn70rnkx).)
+(Aquí hay un [demo](https://codesandbox.io/s/zxn70rnkx).)
 
-Note that **we’re not cheating**. Since I started using `step` inside the effect, I added it to the dependencies. And that’s why the code runs correctly.
+Notar que **no estamos haciendo trampa**. Dado que comencé a usar `step` adentro del effect, lo agregué a las dependencias. Y esa es la razón del por qué el código se ejecuta correctamente.
 
-The current behavior in this example is that changing the `step` restarts the interval — because it’s one of the dependencies. And in many cases, that is exactly what you want! There’s nothing wrong with tearing down an effect and setting it up anew, and we shouldn’t avoid that unless we have a good reason.
+El comportamiento actual en este ejemplo es que cuando cambio el `step` se reinicia el interval — porque es una de sus dependencias. Y en muchos casos, ¡eso es justo lo que quieres! No hay nada de malo con desarmar un effect y armarlo de nuevo, y no deberíamos evitarlo a menos que tengamos una buena razón para hacerlo.
 
-However, let’s say we want the interval clock to not reset on changes to the `step`. How do we remove the `step` dependency from our effect?
+Sin embargo, digamos que queremos que el reloj del intervalo no se resetee cuando cambie `step`. ¿Cómo quitamos a `step` de nuestras dependencias?
 
-**When setting a state variable depends on the current value of another state variable, you might want to try replacing them both with `useReducer`.**
+**Cuando el valor de una variable de estado depende del valor actual de otra variable  de estado, puede que quieras reemplazar ambas por `useReducer`.**
 
-When you find yourself writing `setSomething(something => ...)`, it’s a good time to consider using a reducer instead. A reducer lets you **decouple expressing the “actions” that happened in your component from how the state updates in response to them**.
+Cuando te encuentres escribiendo `setSomething(something => ...)`, es un buen momento para considerar usar en su lugar un reducer. Los reducers te permiten **desasociar las "acciones" que sucedieron en tu componente de cómo el estado debe actualizarse en respuesta a esas acciones**.
 
-Let’s trade the `step` dependency for a `dispatch` dependency in our effect:
+Intercambiemos la dependencia `step` por una dependencia de `dispatch` en nuestro efecto:
 
 ```jsx{1,6,9}
 const [state, dispatch] = useReducer(reducer, initialState);
@@ -1060,21 +1061,21 @@ const { count, step } = state;
 
 useEffect(() => {
   const id = setInterval(() => {
-    dispatch({ type: 'tick' }); // Instead of setCount(c => c + step);
+    dispatch({ type: 'tick' }); // En lugar de setCount(c => c + step);
   }, 1000);
   return () => clearInterval(id);
 }, [dispatch]);
 ```
 
-(See the [demo](https://codesandbox.io/s/xzr480k0np).)
+(Ver la [demo](https://codesandbox.io/s/xzr480k0np).)
 
-You might ask me: “How is this any better?” The answer is that **React guarantees the `dispatch` function to be constant throughout the component lifetime. So the example above doesn’t ever need to resubscribe the interval.**
+Me puedes preguntar: "¿Cómo es esto mejor?" La respuesta es que **React garantiza que la función `dispatch` es constante a lo largo de la vida del componente. Entonces el ejemplo anterior no necesita nunca que volver a resuscribir el intervalo.**
 
-We solved our problem!
+¡Resolvimos nuestro problema!
 
-*(You may omit `dispatch`, `setState`, and `useRef` container values from the deps because React guarantees them to be static. But it also doesn’t hurt to specify them.)*
+*(Puedes omitir `dispatch`, `setState` y `useRef` de las dependencias porque React garantiza que son estáticas. De cualquier modo, no causaremos ningún daño si lo hacemos)*
 
-Instead of reading the state *inside* an effect, it dispatches an *action* that encodes the information about *what happened*. This allows our effect to stay decoupled from the `step` state. Our effect doesn’t care *how* we update the state, it just tells us about *what happened*. And the reducer centralizes the update logic:
+En lugar de leer el estado *dentro* del effect, dispara una *acción* que codifica la información acerca de *qué sucedió*. Esto le permite a nuestro effect mantenerse desasociado del estado `step`. A nuestro effect no le importa *cómo* actualizamos el estado, solo nos dice *lo que sucedió*. Y el reducer centraliza la lógica de actualización:
 
 ```jsx{8,9}
 const initialState = {
@@ -1094,7 +1095,7 @@ function reducer(state, action) {
 }
 ```
 
-(Here’s a [demo](https://codesandbox.io/s/xzr480k0np) if you missed it earlier).
+(Aquí hay una [demo](https://codesandbox.io/s/xzr480k0np) en caso que no la hayas visto antes).
 
 ## Why useReducer Is the Cheat Mode of Hooks
 
