@@ -1069,7 +1069,7 @@ useEffect(() => {
 
 (Ver la [demo](https://codesandbox.io/s/xzr480k0np).)
 
-Me puedes preguntar: "¿Cómo es esto mejor?" La respuesta es que **React garantiza que la función `dispatch` es constante a lo largo de la vida del componente. Entonces el ejemplo anterior no necesita nunca que volver a resuscribir el intervalo.**
+Me puedes preguntar: "¿Cómo es que esto es mejor?" La respuesta es que **React garantiza que la función `dispatch` es constante a lo largo de la vida del componente. Entonces el ejemplo anterior no necesita nunca volver a resuscribir el intervalo.**
 
 ¡Resolvimos nuestro problema!
 
@@ -1097,11 +1097,11 @@ function reducer(state, action) {
 
 (Aquí hay una [demo](https://codesandbox.io/s/xzr480k0np) en caso que no la hayas visto antes).
 
-## Why useReducer Is the Cheat Mode of Hooks
+## Por Qué useReducer Es La Modalidad Tramposa De Los Hooks
 
-We’ve seen how to remove dependencies when an effect needs to set state based on previous state, or on another state variable. **But what if we need _props_ to calculate the next state?** For example, maybe our API is `<Counter step={1} />`. Surely, in this case we can’t avoid specifying `props.step` as a dependency?
+Ya vimos cómo remover dependencias cuando un effect necesita actualizar algún estado con base en un estado previo o con base en otro estado. **Pero ¿qué pasa si necesitamos de _propiedades_ para calcular el valor del estado?** Por ejemplo, tal vez nuestra API es `<Counter step={1} />`. Seguramente, en este caso no podemos evitar especificar `props.step` en las dependencias, ¿o si podemos?
 
-In fact, we can! We can put *the reducer itself* inside our component to read props:
+¡Si podemos! Podemos colocar *la función reducer* dentro de nuestro componente para que pueda leer las propiedades:
 
 ```jsx{1,6}
 function Counter({ step }) {
@@ -1126,17 +1126,17 @@ function Counter({ step }) {
 }
 ```
 
-This pattern disables a few optimizations so try not to use it everywhere, but you can totally access props from a reducer if you need to. (Here’s a [demo](https://codesandbox.io/s/7ypm405o8q).)
+Este patrón nos impide realizar algunas optimizaciones entonces trata de no utilizarlo siempre, pero definitivamente puedes acceder a las propiedades desde un reducer si asi lo necesitas. (Aquí hay una [demo](https://codesandbox.io/s/7ypm405o8q).)
 
-**Even in that case, `dispatch` identity is still guaranteed to be stable between re-renders.** So you may omit it from the effect deps if you want. It’s not going to cause the effect to re-run.
+**Aún en este caso, está garantizado que `dispatch` será estable entre re-renders.** Por lo tanto, puedes omitirla de las dependencias si así lo deseas. No va a causar que el effect vuelva a ejecutarse.
 
-You may be wondering: how can this possibly work? How can the reducer “know” props when called from inside an effect that belongs to another render? The answer is that when you `dispatch`, React just remembers the action — but it will *call* your reducer during the next render. At that point the fresh props will be in scope, and you won’t be inside an effect.
+Puede que te estés preguntando: ¿cómo puede ser que esto funcione? ¿Cómo puede ser que el reducer "conozca" las propiedades cuando se le está llamando desde dentro de un effect que pertenence a otro render? La respuesta es que cuando tu `dispatch`, React recuerda la acción — pero va a *llamar* tu reducer durante el siguiente render. En ese punto, el valor actualizado de las propiedades estará en contexto, y tu no estaras dentro de un effect.
 
-**This is why I like to think of `useReducer` as the “cheat mode” of Hooks. It lets me decouple the update logic from describing what happened. This, in turn, helps me remove unnecessary dependencies from my effects and avoid re-running them more often than necessary.**
+**Esta es la razón del por qué me gusta pensar que `useReducer` es la forma tramposa de Hooks. Me permite desacoplar la lógica de actualización del describir qué pasó. Esto, a su vez, permite remover dependencias innecesarias de mis effects y prevenir que se vuelvan a ejecutar más de lo necesario.**
 
-## Moving Functions Inside Effects
+## Moviendo Funciones Dentro De Effects
 
-A common mistake is to think functions shouldn’t be dependencies. For example, this seems like it could work:
+Un error común es pensar quelas funciones no deben ser dependencias. Por ejemplo, esto pareciera que debe funcionar bien:
 
 ```jsx{13}
 function SearchResults() {
@@ -1151,25 +1151,25 @@ function SearchResults() {
 
   useEffect(() => {
     fetchData();
-  }, []); // Is this okay?
+  }, []); // Está correcto?
 
   // ...
 ```
 
-*([This example](https://codesandbox.io/s/8j4ykjyv0) is adapted from a great article by Robin Wieruch — [check it out](https://www.robinwieruch.de/react-hooks-fetch-data/)!)*
+*([Este ejemplo](https://codesandbox.io/s/8j4ykjyv0) está adaptado de un excelente artículo escrito por Robin Wieruch — [¡dale un vistazo!](https://www.robinwieruch.de/react-hooks-fetch-data/)!)*
 
-And to be clear, this code *does* work. **But the problem with simply omitting local functions is that it gets pretty hard to tell whether we’re handling all cases as the component grows!**
+Y solo para aclarar, este código *funciona*. **Pero el problema con omitir funciones locales es que se vuelve muy difícil determinar si estamos considerando todos los casos con forme el componente crece.**
 
-Imagine our code was split like this and each function was five times larger:
+Imagina que nuestro código está partido de esta manera y que cada función es cinco veces más larga:
 
 ```jsx
 function SearchResults() {
-  // Imagine this function is long
+  // Imagina que esta función es extensa
   function getFetchUrl() {
     return 'https://hn.algolia.com/api/v1/search?query=react';
   }
 
-  // Imagine this function is also long
+  // Imagina que esta función también es extensa
   async function fetchData() {
     const result = await axios(getFetchUrl());
     setData(result.data);
@@ -1184,18 +1184,18 @@ function SearchResults() {
 ```
 
 
-Now let’s say we later use some state or prop in one of these functions:
+Ahora digamos que más adelante usamos estado o propiedades en una de estas funciones:
 
 ```jsx{6}
 function SearchResults() {
   const [query, setQuery] = useState('react');
 
-  // Imagine this function is also long
+  // Imagina que esta función es extensa
   function getFetchUrl() {
     return 'https://hn.algolia.com/api/v1/search?query=' + query;
   }
 
-  // Imagine this function is also long
+  // Imagina que esta función también es extensa
   async function fetchData() {
     const result = await axios(getFetchUrl());
     setData(result.data);
