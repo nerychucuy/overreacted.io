@@ -1183,7 +1183,6 @@ function SearchResults() {
 }
 ```
 
-
 Ahora digamos que más adelante usamos estado o propiedades en una de estas funciones:
 
 ```jsx{6}
@@ -1209,15 +1208,15 @@ function SearchResults() {
 }
 ```
 
-If we forget to update the deps of any effects that call these functions (possibly, through other functions!), our effects will fail to synchronize changes from our props and state. This doesn’t sound great.
+Si olvidamos actualizar las dependencias de cualquiera de los effects que llaman a estas funciones (posiblemente, ¡a través de otras funciones!), nuestros effects fallarán al sincronizar cambios de nuestras propiedades o estado. Eso no suena bien.
 
-Luckily, there is an easy solution to this problem. **If you only use some functions *inside* an effect, move them directly *into* that effect:**
+Por fortuna, hay una solución facil a este problema. **Si solo usas una función *adentro* de un effect, mueve la función *adentro* del effect:**
 
 ```jsx{4-12}
 function SearchResults() {
   // ...
   useEffect(() => {
-    // We moved these functions inside!
+    // Movimos las funciones adentro del effect
     function getFetchUrl() {
       return 'https://hn.algolia.com/api/v1/search?query=react';
     }
@@ -1228,16 +1227,16 @@ function SearchResults() {
     }
 
     fetchData();
-  }, []); // ✅ Deps are OK
+  }, []); // ✅ Las dependencias están OK
   // ...
 }
 ```
 
-([Here’s a demo](https://codesandbox.io/s/04kp3jwwql).)
+([Aquí tenemos una demo](https://codesandbox.io/s/04kp3jwwql).)
 
-So what is the benefit? We no longer have to think about the “transitive dependencies”. Our dependencies array isn’t lying anymore: **we truly _aren’t_ using anything from the outer scope of the component in our effect**.
+Entonces, ¿cuál es el beneficio? Ya no debemos pensar sobre las "dependencias transitivas". Nuestro arreglo de dependencias ya no está mintiendo: **de verdad _no estamos_ usando nada fuera del contexto de nuestro effect**.
 
-If we later edit `getFetchUrl` to use the `query` state, we’re much more likely to notice that we’re editing it *inside* an effect — and therefore, we need to add `query` to the effect dependencies:
+Si más tarde editamos `getFetchUrl` para que use el estado `query`, es mucho más probable que notemos que la estamos editando *dentro* de un effect — y por lo tanto, que debemos agregar `query` a las dependencias:
 
 ```jsx{6,15}
 function SearchResults() {
@@ -1254,29 +1253,29 @@ function SearchResults() {
     }
 
     fetchData();
-  }, [query]); // ✅ Deps are OK
+  }, [query]); // ✅ Las dependencias están OK
 
   // ...
 }
 ```
 
-(Here’s a [demo](https://codesandbox.io/s/pwm32zx7z7).)
+(Aquí hay una [demo](https://codesandbox.io/s/pwm32zx7z7).)
 
-By adding this dependency, we’re not just “appeasing React”. It *makes sense* to refetch the data when the query changes. **The design of `useEffect` forces you to notice the change in our data flow and choose how our effects should synchronize it — instead of ignoring it until our product users hit a bug.**
+Al agregar esta dependencia, no es que solo estemos "complaciendo a React". *Hace sentido* volver a obtener los datos cuando query cambia. **El diseño de `useEffect` te forza a notar el cambio en el flujo de datos y elegir cómo deben sincronizarlo — en lugar de ingorarlo hasta que nuestros usuarios encuentren un error.**
 
-Thanks to the `exhaustive-deps` lint rule from the `eslint-plugin-react-hooks` plugin, you can [analyze the effects as you type in your editor](https://github.com/facebook/react/issues/14920) and receive suggestions about which dependencies are missing. In other words, a machine can tell you which data flow changes aren’t handled correctly by a component.
+Gracias a la regla de lint `exhaustive-deps` del plugin `eslint-plugin-react-hooks`, puedes [analizar los effects mientras vas escribiendo en tu editor](https://github.com/facebook/react/issues/14920) y recibir sugerencias acerca de cuáles dependencias hacen falta. En otras palabras, una máquina puede decirte cuáles cambios en el fujo de datos no están siendo manejados correctamente en tu componente.
 
-![Lint rule gif](./exhaustive-deps.gif)
+![Gif de una regla de lint](./exhaustive-deps.gif)
 
-Pretty sweet.
+Muy bien.
 
-## But I Can’t Put This Function Inside an Effect
+## Pero No Puedo Poner Esta Función Adentro Del Effect
 
-Sometimes you might not want to move a function *inside* an effect. For example, several effects in the same component may call the same function, and you don’t want to copy and paste its logic. Or maybe it’s a prop.
+Algunas veces puede que no quieras mover una función *adentro* de un effect. Por ejemplo, pueda que varios effects del componente llamen a la misma función, y no quieres copiar y pegar su lógica. O tal vez es una propiedad.
 
-Should you skip a function like this in the effect dependencies? I think not. Again, **effects shouldn’t lie about their dependencies.** There are usually better solutions. A common misconception is that “a function would never change”. But as we learned throughout this article, this couldn’t be further from truth. Indeed, a function defined inside a component changes on every render!
+¿Debes excluir una función como esta de las dependencias? Creo que no. De nuevo, **los effects no deben mentir acerca de sus dependencias.** Regularmente hay mejores soluciones. Un error típico es creer que "una función nunca va a cambiar". Pero tal como hemos aprendido a lo largo de este artículo, nada puede estar más lejos de la realidad. En efecto, ¡una función definia dentro de un componente cambia con cada render!
 
-**That by itself presents a problem.** Say two effects call `getFetchUrl`:
+**Eso por si mismo presenta un problema.** Digamos que dos effects invocan `getFetchUrl`:
 
 ```jsx
 function SearchResults() {
@@ -1286,51 +1285,51 @@ function SearchResults() {
 
   useEffect(() => {
     const url = getFetchUrl('react');
-    // ... Fetch data and do something ...
-  }, []); // 🔴 Missing dep: getFetchUrl
+    // ... Obtener datos y hacer algo con ellos ...
+  }, []); // 🔴 Falta una dependencia: getFetchUrl
 
   useEffect(() => {
     const url = getFetchUrl('redux');
-    // ... Fetch data and do something ...
-  }, []); // 🔴 Missing dep: getFetchUrl
+    // ... Obtener datos y hacer algo con ellos ...
+  }, []); // 🔴 Falta una dependencia: getFetchUrl
 
   // ...
 }
 ```
 
-In that case you might not want to move `getFetchUrl` inside either of the effects since you wouldn’t be able to share the logic.
+En ese caso pueda que no quieras mover `getFetchUrl` adentro de ninguno de los effects pues no podrías reutilizar su lógica.
 
-On the other hand, if you’re “honest” about the effect dependencies, you may run into a problem. Since both our effects depend on `getFetchUrl` **(which is different on every render)**, our dependency arrays are useless:
+Por otro lado, si eres "honesto" acerca de las dependencias del effect, te encontraras con un problema. Dado que ambos effects dependen de `getFetchUrl` **(el cual cambia con cada render)** nuestros arreglos de dependencias son inútiles:
 
 ```jsx{2-5}
 function SearchResults() {
-  // 🔴 Re-triggers all effects on every render
+  // 🔴 Hace que cada effect se ejecute en cada render
   function getFetchUrl(query) {
     return 'https://hn.algolia.com/api/v1/search?query=' + query;
   }
 
   useEffect(() => {
     const url = getFetchUrl('react');
-    // ... Fetch data and do something ...
-  }, [getFetchUrl]); // 🚧 Deps are correct but they change too often
+    // ... Obtener datos y hacer algo con ellos ...
+  }, [getFetchUrl]); // 🚧 Las dependencias están correctas, pero cambian demasiado frecuente
 
   useEffect(() => {
     const url = getFetchUrl('redux');
-    // ... Fetch data and do something ...
-  }, [getFetchUrl]); // 🚧 Deps are correct but they change too often
+    // ... Obtener datos y hacer algo con ellos ...
+  }, [getFetchUrl]); // 🚧 Las dependencias están correctas, pero cambian demasiado frecuente
 
   // ...
 }
 ```
 
-A tempting solution to this is to just skip the `getFetchUrl` function in the deps list. However, I don’t think it’s a good solution. This makes it difficult to notice when we *are* adding a change to the data flow that *needs* to be handled by an effect. This leads to bugs like the “never updating interval” we saw earlier.
+Una solución tentadora puede ser no incluir la función `getFetchUrl` en la lista de dependencias. Sin embargo, no creo que esa sea una buena solución. Hacer eso haría dificil notar cuando *estamos* agregando un cambio al flujo de datos que *necesita* ser manejado por un effect. Esto nos lleva a errores como "un interval que nunca se actualiza"  que vimos antes.
 
-Instead, there are two other solutions that are simpler.
+En lugar de eso, hay otras dos soluciones que son más simples.
 
-**First of all, if a function doesn’t use anything from the component scope, you can hoist it outside the component and then freely use it inside your effects:**
+**Primero que nada, si una función no utiliza nada del contexto del componente, puedes colocarla afuera del componente y luego usarla libremente en tus effects:**
 
 ```jsx{1-4}
-// ✅ Not affected by the data flow
+// ✅ No está influenciada por el flujo de datos
 function getFetchUrl(query) {
   return 'https://hn.algolia.com/api/v1/search?query=' + query;
 }
@@ -1338,93 +1337,93 @@ function getFetchUrl(query) {
 function SearchResults() {
   useEffect(() => {
     const url = getFetchUrl('react');
-    // ... Fetch data and do something ...
-  }, []); // ✅ Deps are OK
+    // ... Obtener datos y hacer algo con ellos ...
+  }, []); // ✅ Dependencias correctas
 
   useEffect(() => {
     const url = getFetchUrl('redux');
-    // ... Fetch data and do something ...
-  }, []); // ✅ Deps are OK
+    // ... Obtener datos y hacer algo con ellos ...
+  }, []); // ✅ Dependencias correctas
 
   // ...
 }
 ```
 
-There’s no need to specify it in deps because it’s not in the render scope and can’t be affected by the data flow. It can’t accidentally depend on props or state.
+No hay necesidad de especificarla en las dependencias porque no está en el contexto del render y no puede ser afectada por el flujo de datos. No puede iniciar a depender de estado o propiedades accidentalmente.
 
-Alternatively, you can wrap it into the [`useCallback` Hook](https://reactjs.org/docs/hooks-reference.html#usecallback):
+Alternativamente, puedes encerrarla en el [`useCallback` Hook](https://reactjs.org/docs/hooks-reference.html#usecallback):
 
 
 ```jsx{2-5}
 function SearchResults() {
-  // ✅ Preserves identity when its own deps are the same
+  // ✅ Preserva su identidad cuando sus propias dependencias son iguales
   const getFetchUrl = useCallback((query) => {
     return 'https://hn.algolia.com/api/v1/search?query=' + query;
-  }, []);  // ✅ Callback deps are OK
+  }, []);  // ✅ Dependencias OK
 
   useEffect(() => {
     const url = getFetchUrl('react');
-    // ... Fetch data and do something ...
-  }, [getFetchUrl]); // ✅ Effect deps are OK
+    // ... Obtener datos y hacer algo con ellos ...
+  }, [getFetchUrl]); // ✅ Dependencias OK
 
   useEffect(() => {
     const url = getFetchUrl('redux');
-    // ... Fetch data and do something ...
-  }, [getFetchUrl]); // ✅ Effect deps are OK
+    // ... Obtener datos y hacer algo con ellos ...
+  }, [getFetchUrl]); // ✅ Dependencias OK
 
   // ...
 }
 ```
 
-`useCallback` is essentially like adding another layer of dependency checks. It’s solving the problem on the other end — **rather than avoid a function dependency, we make the function itself only change when necessary**.
+`useCallback` es esencialmente como si agregaramos otra capa de chequeo de dependencias. Es resolver el problema por el otro lado — **en lugar de omitir una función en las dependencias, hacemos que la función solo cambie cuando sea necesario**.
 
-Let's see why this approach is useful. Previously, our example showed two search results (for `'react'` and `'redux'` search queries). But let's say we want to add an input so that you can search for an arbitrary `query`. So instead of taking `query` as an argument, `getFetchUrl` will now read it from local state.
+Veamos por qué este enfoque es útil. Previamente, nuestro ejemplo mostraba dos resultados de búsqueda (para las búsquedas `'reac'` y `'redux'`). Pero digamos que queremos agregar un input de manera que puedas buscar por un `query` arbitrario. Entonces en lugar de tomar `query` de un argumento, `getFetchUrl` lo va a tomar del estado.
 
-We'll immediately see that it's missing a `query` dependency:
+De inmediato notaremos que le hace falta la dependencia `query`:
 
 ```jsx{5}
 function SearchResults() {
   const [query, setQuery] = useState('react');
-  const getFetchUrl = useCallback(() => { // No query argument
+  const getFetchUrl = useCallback(() => { // Sin el argumento query
     return 'https://hn.algolia.com/api/v1/search?query=' + query;
-  }, []); // 🔴 Missing dep: query
+  }, []); // 🔴 Falta la dependencia query
   // ...
 }
 ```
 
-If I fix my `useCallback` deps to include `query`, any effect with `getFetchUrl` in deps will re-run whenever the `query` changes:
+Si arreglo mis dependencias del `useCallback` e incluyo `query`, cualquier effect con `getFetchUrl` en sus dependencias se va a volver a ejecutar cuando `query` cambie:
 
 ```jsx{4-7}
 function SearchResults() {
   const [query, setQuery] = useState('react');
 
-  // ✅ Preserves identity until query changes
+  // ✅ Preserva su identidad hasta que query cambia
   const getFetchUrl = useCallback(() => {
     return 'https://hn.algolia.com/api/v1/search?query=' + query;
-  }, [query]);  // ✅ Callback deps are OK
+  }, [query]);  // ✅ Dependencias del callback OK
 
   useEffect(() => {
     const url = getFetchUrl();
-    // ... Fetch data and do something ...
-  }, [getFetchUrl]); // ✅ Effect deps are OK
+    // ... Obtener datos y hacer algo con ellos ...
+  }, [getFetchUrl]); // ✅ Dependencias del effect OK
 
   // ...
 }
 ```
 
-Thanks to `useCallback`, if `query` is the same, `getFetchUrl` also stays the same, and our effect doesn't re-run. But if `query` changes, `getFetchUrl` will also change, and we will re-fetch the data. It's a lot like when you change some cell in an Excel spreadsheet, and the other cells using it recalculate automatically.
+Gracias a `useCallback`, si `query` es el mismo, `getFetchUrl` también se mantiene igual, y nuestro effect no se vuelve a ejecutar. Pero si `query` cambia, `getFetchUrl` también va a cambiar, y vamos a obtener los datos nuevamente. Se parece mucho a cuando cambias una celda en una hoja de Excel, y las otras celdas que la usan se recalculan automaticamente.
 
-This is just a consequence of embracing the data flow and the synchronization mindset. **The same solution works for function props passed from parents:**
+Esta es solo una consecuencia de abrazar el flujo de datos y la mentalidad de sincronización. **La misma solución aplica para funciones pasadas como propiedades desde componentes padres:**
 
 ```jsx{4-8}
 function Parent() {
   const [query, setQuery] = useState('react');
 
-  // ✅ Preserves identity until query changes
+  // ✅ Preserva su identidad hasta que query cambia
   const fetchData = useCallback(() => {
     const url = 'https://hn.algolia.com/api/v1/search?query=' + query;
-    // ... Fetch data and return it ...
-  }, [query]);  // ✅ Callback deps are OK
+    // ... Obtener datos y retornarlos ...
+  }, [query]);  // ✅ Las dependencias del callback están OK
 
   return <Child fetchData={fetchData} />
 }
@@ -1434,13 +1433,13 @@ function Child({ fetchData }) {
 
   useEffect(() => {
     fetchData().then(setData);
-  }, [fetchData]); // ✅ Effect deps are OK
+  }, [fetchData]); // ✅ Dependencias del effect OK
 
   // ...
 }
 ```
 
-Since `fetchData` only changes inside `Parent` when its `query` state changes, our `Child` won’t refetch the data until it’s actually necessary for the app.
+Puesto que `fetchData` solo cambia dentro de `Parent` cuando su estado `query` cambia, nuestro `Child` no va a volver a obtener datos sino hasta que sea necesario.
 
 ## Are Functions Part of the Data Flow?
 
