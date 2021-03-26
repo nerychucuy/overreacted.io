@@ -706,7 +706,7 @@ domNode.innerText = 'Hello, Yuzhi';
 
 **¿Podemos hacer algo similar con los effects? Sería bueno poder evitar volver a ejecutarlos si no son necesarios**
 
-Por ejemplo, tal vez nuestro componente re-renderiza a causa del cambio en un estado:
+Por ejemplo, talvez nuestro componente re-renderiza a causa del cambio en un estado:
 
 ```jsx{11-13}
 function Greeting({ name }) {
@@ -1099,7 +1099,7 @@ function reducer(state, action) {
 
 ## Por Qué useReducer Es La Modalidad Tramposa De Los Hooks
 
-Ya vimos cómo remover dependencias cuando un effect necesita actualizar algún estado con base en un estado previo o con base en otro estado. **Pero ¿qué pasa si necesitamos de _propiedades_ para calcular el valor del estado?** Por ejemplo, tal vez nuestra API es `<Counter step={1} />`. Seguramente, en este caso no podemos evitar especificar `props.step` en las dependencias, ¿o si podemos?
+Ya vimos cómo remover dependencias cuando un effect necesita actualizar algún estado con base en un estado previo o con base en otro estado. **Pero ¿qué pasa si necesitamos de _propiedades_ para calcular el valor del estado?** Por ejemplo, talvez nuestra API es `<Counter step={1} />`. Seguramente, en este caso no podemos evitar especificar `props.step` en las dependencias, ¿o si podemos?
 
 ¡Si podemos! Podemos colocar *la función reducer* dentro de nuestro componente para que pueda leer las propiedades:
 
@@ -1271,7 +1271,7 @@ Muy bien.
 
 ## Pero No Puedo Poner Esta Función Adentro Del Effect
 
-Algunas veces puede que no quieras mover una función *adentro* de un effect. Por ejemplo, pueda que varios effects del componente llamen a la misma función, y no quieres copiar y pegar su lógica. O tal vez es una propiedad.
+Algunas veces puede que no quieras mover una función *adentro* de un effect. Por ejemplo, pueda que varios effects del componente llamen a la misma función, y no quieres copiar y pegar su lógica. O talvez es una propiedad.
 
 ¿Debes excluir una función como esta de las dependencias? Creo que no. De nuevo, **los effects no deben mentir acerca de sus dependencias.** Regularmente hay mejores soluciones. Un error típico es creer que "una función nunca va a cambiar". Pero tal como hemos aprendido a lo largo de este artículo, nada puede estar más lejos de la realidad. En efecto, ¡una función definia dentro de un componente cambia con cada render!
 
@@ -1441,9 +1441,9 @@ function Child({ fetchData }) {
 
 Puesto que `fetchData` solo cambia dentro de `Parent` cuando su estado `query` cambia, nuestro `Child` no va a volver a obtener datos sino hasta que sea necesario.
 
-## Are Functions Part of the Data Flow?
+## ¿Son Las Funciones Parte del Flujo De Datos?
 
-Interestingly, this pattern is broken with classes in a way that really shows the difference between the effect and lifecycle paradigms. Consider this translation:
+Curiosamente, este patrón está roto en el caso de clases de una manera que realmente pone en evidencia la diferencia entre los paradigmas de effect y ciclo de vida. Considera esta traducción:
 
 ```jsx{5-8,18-20}
 class Parent extends Component {
@@ -1452,7 +1452,7 @@ class Parent extends Component {
   };
   fetchData = () => {
     const url = 'https://hn.algolia.com/api/v1/search?query=' + this.state.query;
-    // ... Fetch data and do something ...
+    // ... Obtener datos y hacer algo con ellos ...
   };
   render() {
     return <Child fetchData={this.fetchData} />;
@@ -1472,7 +1472,7 @@ class Child extends Component {
 }
 ```
 
-You might be thinking: “Come on Dan, we all know that `useEffect` is like `componentDidMount` and `componentDidUpdate` combined, you can’t keep beating that drum!” **Yet this doesn’t work even with `componentDidUpdate`:**
+Seguro estarás pensando: "Vamos Dan, todos sabemos que `useEffect` es lo mismo que `componentDidMount` y `componentDidUpdate` combinados, ¡ya deja esa cantaleta!" **Aun así, esto no funciona aún con `componentDidUpdate`:**
 
 ```jsx{8-13}
 class Child extends Component {
@@ -1483,7 +1483,7 @@ class Child extends Component {
     this.props.fetchData();
   }
   componentDidUpdate(prevProps) {
-    // 🔴 This condition will never be true
+    // 🔴 Esta condición nunca será verdadera
     if (this.props.fetchData !== prevProps.fetchData) {
       this.props.fetchData();
     }
@@ -1494,7 +1494,7 @@ class Child extends Component {
 }
 ```
 
-Of course, `fetchData` is a class method! (Or, rather, a class property — but that doesn’t change anything.) It’s not going to be different because of a state change. So `this.props.fetchData` will stay equal to `prevProps.fetchData` and we’ll never refetch. Let’s just remove this condition then?
+Claro, `fetchData` ¡es un método de una clase! (O, en cambio, una propiedad de una clase — pero eso no cambia nada.) No va a cambiar para nada aún cuando el estado cambie. Por lo tanto `this.props.fetchData` se mantendrá igual a `prevProps.fetchData` y nunca volveremos a obtener más datos. ¿Y si quitamos esa condición entonces?
 
 ```jsx
   componentDidUpdate(prevProps) {
@@ -1502,7 +1502,7 @@ Of course, `fetchData` is a class method! (Or, rather, a class property — but 
   }
 ```
 
-Oh wait, this fetches on *every* re-render. (Adding an animation above in the tree is a fun way to discover it.) Maybe let’s bind it to a particular query?
+Un momento, esto hace que obtengamos datos en *cada* render. (Agregar una animación arriba en el árbol es una forma divertida de descubrirlo.) ¿Talvez debemos usar bind?
 
 ```jsx
   render() {
@@ -1510,9 +1510,9 @@ Oh wait, this fetches on *every* re-render. (Adding an animation above in the tr
   }
 ```
 
-But then `this.props.fetchData !== prevProps.fetchData` is *always* `true`, even if the `query` didn’t change! So we’ll *always* refetch.
+Pero entonces `this.props.fetchData !== prevProps.fetchData` *siempre* será `true`, ¡aún cuando `query` no cambie! Entonces *siempre* vamos a volver a traer datos.
 
-The only real solution to this conundrum with classes is to bite the bullet and pass the `query` itself into the `Child` component. The `Child` doesn’t actually end up *using* the `query`, but it can trigger a refetch when it changes:
+La única solución real a este dilema usando clases es encararlo y pasar `query` al componente `Child`. `Child` no va a *utilizar* `query` directamente, pero haciendo esto podemos disparar la función que obtiene datos cuando `query` cambia:
 
 ```jsx{10,22-24}
 class Parent extends Component {
@@ -1521,7 +1521,7 @@ class Parent extends Component {
   };
   fetchData = () => {
     const url = 'https://hn.algolia.com/api/v1/search?query=' + this.state.query;
-    // ... Fetch data and do something ...
+    // ... Obtener datos y hacer algo con ellos ...
   };
   render() {
     return <Child fetchData={this.fetchData} query={this.state.query} />;
@@ -1546,13 +1546,13 @@ class Child extends Component {
 }
 ```
 
-Over the years of working with classes with React, I’ve gotten so used to passing unnecessary props down and breaking encapsulation of parent components that I only realized a week ago why we had to do it.
+Después de tantos años de trabajar con clases en React, me he acostumbrado tanto a pasar propiedades innecesarias y romper la encapsulación del componente padre que hasta hace una semana finalmente me di cuenta por qué tenía que hacerlo.
 
-**With classes, function props by themselves aren’t truly a part of the data flow.** Methods close over the mutable `this` variable so we can’t rely on their identity to mean anything. Therefore, even when we only want a function, we have to pass a bunch of other data around in order to be able to “diff” it. We can’t know whether `this.props.fetchData` passed from the parent depends on some state or not, and whether that state has just changed.
+**Con clases, las funciones pasadas en las propiedades no son realmente parte del flujo de datos.** Las funciones se encapsulan en el mutable `this` de manera que no podemos basarnos en que su identidad signifique algo. Por lo tanto, aún cuando solo nos interesa la función, tenemos que pasar otros datos con tal de poder simular el "diff". No podemos saber si `this.props.fetchData` pasado del componente padre depende de un estado o no y si ese estado ha cambiado o no.
 
-**With `useCallback`, functions can fully participate in the data flow.** We can say that if the function inputs changed, the function itself has changed, but if not, it stayed the same. Thanks to the granularity provided by `useCallback`, changes to props like `props.fetchData` can propagate down automatically.
+**Con `useCallback`, las funciones pueden participar plenamente en el flujo de datos.** Podemos decir que si los parámetros de una funcion cambiaron, la función como tal ha cambiado, pero si no, se mantiene igual. Gracias a la granularidad que nos brinda `useCallback`, cambios en las propiedades como `props.fetchData` se propagan hacia niveles más bajos de manera automática.
 
-Similarly, [`useMemo`](https://reactjs.org/docs/hooks-reference.html#usememo) lets us do the same for complex objects:
+De manera similar, [`useMemo`](https://reactjs.org/docs/hooks-reference.html#usememo) nos permite hacer lo mismo para objetos complejos:
 
 ```jsx
 function ColorPicker() {
